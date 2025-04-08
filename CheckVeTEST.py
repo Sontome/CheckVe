@@ -17,10 +17,10 @@ import re
 # Đường dẫn đến file credentials JSON
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SERVICE_ACCOUNT_FILE = 'keysheet.json'  # File credentials của bạn
-
+SPREADSHEET_ID = '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190'
 # Telegram configuration
 TELEGRAM_BOT_TOKEN = '5737041469:AAG5XdXVwATvldvDpXmnlQT0dmh2-sZ70gE'
-TELEGRAM_CHAT_ID = str(-4698930772) # Đã sửa thành số nguyên
+TELEGRAM_CHAT_ID = str(-4622194613) # Đã sửa thành số nguyên
 TELEGRAM_API_URL = f'https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage'
 
 # Biến toàn cục để lưu driver
@@ -245,7 +245,7 @@ def checkVJ(data):
         print(f"Đang nhập username: {username}")
         
         # Đợi cho element input username xuất hiện
-        wait = WebDriverWait(driver, 20)
+        wait = WebDriverWait(driver, 10)
         for field_name, value in [("username", username), ("password", password)]:
             input_elem = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, f"input[name='{field_name}']")))
             input_elem.clear()
@@ -273,18 +273,7 @@ def checkVJ(data):
                 "/html/body/div[2]/div[2]/div/div/div/mat-option[1]/span/ngx-mat-select-search/div/input"
             ]
             # Xử lý từng cái dropdown
-            wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "cdk-overlay-backdrop")) == 0)
-            dropdown = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown_xpaths[1])))
-            dropdown.click()
-
-            print(f"👉 Click dropdown thứ {2}")
             
-            # Chờ ô input search hiện ra
-            search_input = wait.until(
-                EC.visibility_of_element_located((By.XPATH, input_xpaths[1]))
-            )
-            search_input.send_keys(options[1])
-            print(f"⌨️ Gõ '{options[1]}'")
             try:
                 wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "cdk-overlay-backdrop")) == 0)
                 date_input = wait.until(
@@ -323,7 +312,18 @@ def checkVJ(data):
             )
             search_input.send_keys(options[0])
             print(f"⌨️ Gõ '{options[0]}'")
+            wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "cdk-overlay-backdrop")) == 0)
+            dropdown = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown_xpaths[1])))
+            dropdown.click()
 
+            print(f"👉 Click dropdown thứ {2}")
+            
+            # Chờ ô input search hiện ra
+            search_input = wait.until(
+                EC.visibility_of_element_located((By.XPATH, input_xpaths[1]))
+            )
+            search_input.send_keys(options[1])
+            print(f"⌨️ Gõ '{options[1]}'")
                 # Delay tí để nó render option
                 
             
@@ -344,26 +344,50 @@ def checkVJ(data):
             buttontimkiem= wait.until(EC.element_to_be_clickable((By.XPATH, "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div/div[3]/div[1]/div/div/div[1]/app-date-destination/div/section[1]/div/form/div[6]/div[1]/button")))
             buttontimkiem.click()
             # Click vào element span
-            
-            date_element_eco = wait.until(
-                EC.presence_of_element_located((By.XPATH, "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div[1]/div[3]/div[1]/div/div/div[1]/div[1]/app-list-flight/div[4]/div/div/div/div[2]/div[4]/span/span[1]"))
-            )
+            try:
+                date_element_eco = wait.until(
+                    EC.presence_of_element_located((By.XPATH, "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div[1]/div[3]/div[1]/div/div/div[1]/div[1]/app-list-flight/div[4]/div/div/div/div[2]/div[4]/span/span[1]"))
+                )
 
-            date_element_deluxe = wait.until(
-                EC.presence_of_element_located((By.XPATH, "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div[1]/div[3]/div[1]/div/div/div[1]/div[1]/app-list-flight/div[4]/div/div/div/div[2]/div[3]/span/span[1]"))
-            )
-            ecovalue= date_element_eco.text.replace(",", "")
-            deluxevalue= date_element_deluxe.text.replace(",", "")
-            if int(ecovalue)<int(deluxevalue)-40000:
-                date_element_eco.click()
-            else :
-                loaive="DELUXE"
-                date_element_deluxe.click()
+                date_element_deluxe = wait.until(
+                    EC.presence_of_element_located((By.XPATH, "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div[1]/div[3]/div[1]/div/div/div[1]/div[1]/app-list-flight/div[4]/div/div/div/div[2]/div[3]/span/span[1]"))
+                )
+                ecovalue= date_element_eco.text.replace(",", "")
+                deluxevalue= date_element_deluxe.text.replace(",", "")
+                if int(ecovalue)<int(deluxevalue)-40000:
+                    date_element_eco.click()
+                else :
+                    loaive="DELUXE"
+                    date_element_deluxe.click()
             # Đợi bảng thông tin chuyến bay xuất hiện
             # Đợi 5 giây để bảng hiển thị đầy đủ
-            
+            except Exception as e:
+                driver.save_screenshot("browser_screenshot.png")
+                print("Đã chụp ảnh toàn bộ trình duyệt")
+                
+                # Gửi ảnh lên Telegram
+                message = f"🔍 <b>Chiều Đi --></b>\n\n"
+                message += f" {row[0]} - {row[1]} "
+                message += f" Hết Vé "
+                
+                
+                
+                if send_telegram_message(message, "browser_screenshot.png"):
+                    print("Đã gửi ảnh toàn bộ trình duyệt lên Telegram")
+                else:
+                    print("Không thể gửi ảnh toàn bộ trình duyệt lên Telegram")
+                if row[5]=="TRUE":
+                    
+                    checkVJback(data,'Hết Vé', 'Hết Vé','Hết Vé')
+                    break
+                else :
+                    SPREADSHEET_ID = '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190'
+                    clear_range = 'CheckVe!L1:Q2'
+                    clear_values = [[row[0], row[1],'Hết Vé', 'Hết Vé','Hết Vé',row[6 ]],['', '','', '','','']]  # Tạo danh sách rỗng cho 2 ô
+                    update_sheet(SPREADSHEET_ID, clear_range, clear_values)
             try:
                 # Chụp ảnh toàn bộ trình duyệt
+                wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "cdk-overlay-backdrop")) == 0)
                 time_element = wait.until(
                     EC.presence_of_element_located((By.XPATH, "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div[1]/div[3]/div[1]/div/div/div[1]/div[1]/app-list-flight/div[4]/div/div/div[2]/div/div[1]/div[1]/div[3]"))
                 )
@@ -372,10 +396,9 @@ def checkVJ(data):
                 
                 # Thay đổi định dạng thời gian
                 time_text = time_text.replace(", ", " ngày ")
-                price_element = wait.until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, "div.font_22.color_white.font_money"))
-                )
-                time.sleep(0.5)
+                
+                
+                
                 price_element = wait.until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "div.font_22.color_white.font_money"))
                 )
@@ -400,17 +423,18 @@ def checkVJ(data):
                 if row[5]=="TRUE":
                     checkVJback(data,time_text, price_text,loaive)
                 else :
-                    SPREADSHEET_ID = '1OwKfz3bhJKai2ph6Fc8GOeN087hBU1jPY9dm02ZisQo'
+                    SPREADSHEET_ID = '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190'
                     clear_range = 'CheckVe!L1:Q2'
                     clear_values = [[row[0], row[1],time_text, str(price_text),loaive,row[6 ]],['', '','', '','','']]  # Tạo danh sách rỗng cho 2 ô
                     update_sheet(SPREADSHEET_ID, clear_range, clear_values)
                     time.sleep(1)
-                    datatele = read_sheet(SPREADSHEET_ID, 'CheckVe!A3:A6')
-                    messtele = datatele[0][0] +"\n" +datatele[1][0] +"\n" + datatele[2][0] +"\n" +datatele[3][0] 
-                    send_telegram_message(messtele)
+                    
                 
             except Exception as e:
-                print(f"Lỗi khi chụp bảng thông tin chuyến bay: {str(e)}")
+                SPREADSHEET_ID = '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190'
+                clear_range = 'CheckVe!L1:Q2'
+                clear_values = [[row[0], row[1],'Hết Vé', 'Hết Vé','Hết Vé',row[6 ]],['', '','', '','','']]  # Tạo danh sách rỗng cho 2 ô
+                update_sheet(SPREADSHEET_ID, clear_range, clear_values)
                 
     except Exception as e:
         print(f"Lỗi khi xử lý dữ liệu VJ: {str(e)}")
@@ -438,60 +462,28 @@ def checkVJback(data,time_text_0,price_text_0,loaive):
         
         
         # Đợi cho element input username xuất hiện
-        wait = WebDriverWait(driver, 20)
+        wait = WebDriverWait(driver, 10)
         
         # Xử lý dữ liệu từ sheet
         for row in data:
-            time.sleep(2)
-            span_elements = wait.until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "span.mat-select-placeholder"))
-            )
+            options = [row[1], row[0]]
+
+            # Tìm 2 cái dropdown
+            dropdown_xpaths = [
+                
+                "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div/div[3]/div[1]/div/div/div[1]/app-date-destination/div/section[1]/div/form/div[2]/mat-form-field[1]/div/div[1]/div/mat-select/div/div[1]",
+                "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div/div[3]/div[1]/div/div/div[1]/app-date-destination/div/section[1]/div/form/div[3]/mat-form-field[1]/div/div[1]/div/mat-select/div/div[1]"
+            ]
+            print(f"✅  bắt đầu chọn option...")
+            input_xpaths = [
+                
+                "/html/body/div[2]/div[2]/div/div/div/mat-option[1]/span/ngx-mat-select-search/div/input",
+                "/html/body/div[2]/div[2]/div/div/div/mat-option[1]/span/ngx-mat-select-search/div/input"
+            ]
+            # Xử lý từng cái dropdown
             
-            # Click vào element span
-            span_elements[0].click()
-            print("Đã click vào element span")
-            
-            # Đợi một chút để dropdown hiển thị
-            time.sleep(1)
-            
-            # Tìm element input tìm kiếm theo placeholder
-            search_input = wait.until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "input[placeholder='Tìm kiếm...']"))
-            )
-            
-            # Xóa nội dung hiện tại và nhập nội dung từ row[0]
-            search_input.clear()
-            search_input.send_keys(row[1])
-            print(f"Đã nhập nội dung tìm kiếm: {row[1]}")
-            span_element = wait.until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "span.mat-select-placeholder"))
-            )
-            
-            # Click vào element span
-            span_element.click()
-            print("Đã click vào element span")
-            
-            # Đợi một chút để dropdown hiển thị
-            time.sleep(1)
-            
-            # Tìm element input tìm kiếm theo placeholder
-            search_input = wait.until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "input[placeholder='Tìm kiếm...']"))
-            )
-            
-            # Xóa nội dung hiện tại và nhập nội dung từ row[0]
-            search_input.clear()
-            search_input.send_keys(row[0])
-            print(f"Đã nhập nội dung tìm kiếm: {row[0]}")
-            
-            # Đợi một chút để kết quả tìm kiếm hiển thị
-            
-            
-            # Tìm và click vào option chứa nội dung từ row[0]
-            
-            
-            # Tìm element input ngày tháng năm
             try:
+                wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "cdk-overlay-backdrop")) == 0)
                 date_input = wait.until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "input[formcontrolname='departureDate']"))
                 )
@@ -514,35 +506,92 @@ def checkVJback(data,time_text_0,price_text_0,loaive):
                 
             except Exception as e:
                 print(f"Lỗi khi đặt ngày tháng năm: {str(e)}")
-
+            wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "cdk-overlay-backdrop")) == 0)
+            dropdown = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown_xpaths[0]))).click()
             
-
-            span_elements = wait.until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "span.mat-button-wrapper"))
+            print(f"👉 Click dropdown thứ {1}")
+            
+            # Chờ ô input search hiện ra
+            search_input = wait.until(
+                EC.presence_of_element_located((By.XPATH, input_xpaths[0]))
             )
+            search_input = wait.until(
+                EC.element_to_be_clickable((By.XPATH, input_xpaths[0]))
+            )
+            search_input.send_keys(options[0])
+            print(f"⌨️ Gõ '{options[0]}'")
+            wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "cdk-overlay-backdrop")) == 0)
+            dropdown = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown_xpaths[1])))
+            dropdown.click()
+
+            print(f"👉 Click dropdown thứ {2}")
             
+            # Chờ ô input search hiện ra
+            search_input = wait.until(
+                EC.visibility_of_element_located((By.XPATH, input_xpaths[1]))
+            )
+            search_input.send_keys(options[1])
+            print(f"⌨️ Gõ '{options[1]}'")
+                # Delay tí để nó render option
+                
+            
+            # Tìm element input tìm kiếm theo placeholder
+            
+            
+            # Đợi một chút để kết quả tìm kiếm hiển thị
+            
+            
+            # Tìm và click vào option chứa nội dung từ row[0]
+            
+            
+            # Tìm element input ngày tháng năm
+            
+
+            
+            wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "cdk-overlay-backdrop")) == 0)
+            buttontimkiem= wait.until(EC.element_to_be_clickable((By.XPATH, "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div/div[3]/div[1]/div/div/div[1]/app-date-destination/div/section[1]/div/form/div[6]/div[1]/button")))
+            buttontimkiem.click()
             # Click vào element span
-            span_elements[0].click()
-            date_element_eco = wait.until(
-                EC.presence_of_element_located((By.XPATH, "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div[1]/div[3]/div[1]/div/div/div[1]/div[1]/app-list-flight/div[4]/div/div/div/div[2]/div[4]/span/span[1]"))
-            )
+            try:
+                date_element_eco = wait.until(
+                    EC.presence_of_element_located((By.XPATH, "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div[1]/div[3]/div[1]/div/div/div[1]/div[1]/app-list-flight/div[4]/div/div/div/div[2]/div[4]/span/span[1]"))
+                )
 
-            date_element_deluxe = wait.until(
-                EC.presence_of_element_located((By.XPATH, "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div[1]/div[3]/div[1]/div/div/div[1]/div[1]/app-list-flight/div[4]/div/div/div/div[2]/div[3]/span/span[1]"))
-            )
-            ecovalue= date_element_eco.text.replace(",", "")
-            deluxevalue= date_element_deluxe.text.replace(",", "")
-            if int(ecovalue)<int(deluxevalue)-40000:
-                date_element_eco.click()
-            else :
-                loaiveve="DELUXE"
-                date_element_deluxe.click()
-            
+                date_element_deluxe = wait.until(
+                    EC.presence_of_element_located((By.XPATH, "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div[1]/div[3]/div[1]/div/div/div[1]/div[1]/app-list-flight/div[4]/div/div/div/div[2]/div[3]/span/span[1]"))
+                )
+                ecovalue= date_element_eco.text.replace(",", "")
+                deluxevalue= date_element_deluxe.text.replace(",", "")
+                if int(ecovalue)<int(deluxevalue)-40000:
+                    date_element_eco.click()
+                else :
+                    loaiveve="DELUXE"
+                    date_element_deluxe.click()
+            except Exception as e:
+                driver.save_screenshot("browser_screenshot.png")
+                print("Đã chụp ảnh toàn bộ trình duyệt")
+                
+                # Gửi ảnh lên Telegram
+                message = f"🔍 <b>Chiều Về --></b>\n\n"
+                message += f" {row[1]} - {row[0]} "
+                message += f" Hết Vé "
+                
+                
+                
+                if send_telegram_message(message, "browser_screenshot.png"):
+                    print("Đã gửi ảnh toàn bộ trình duyệt lên Telegram")
+                else:
+                    print("Không thể gửi ảnh toàn bộ trình duyệt lên Telegram")
+                SPREADSHEET_ID = '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190'
+                clear_range = 'CheckVe!L1:Q2'
+                clear_values = [[row[0], row[1],time_text_0, str(price_text_0),loaive,row[6]],[row[1], row[0],'Hết Vé', 'Hết Vé','Hết Vé','']]  # Tạo danh sách rỗng cho 2 ô
+                update_sheet(SPREADSHEET_ID, clear_range, clear_values)
             # Đợi bảng thông tin chuyến bay xuất hiện
             # Đợi 5 giây để bảng hiển thị đầy đủ
             
             try:
                 # Chụp ảnh toàn bộ trình duyệt
+                wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "cdk-overlay-backdrop")) == 0)
                 time_element = wait.until(
                     EC.presence_of_element_located((By.XPATH, "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div[1]/div[3]/div[1]/div/div/div[1]/div[1]/app-list-flight/div[4]/div/div/div[2]/div/div[1]/div[1]/div[3]"))
                 )
@@ -551,10 +600,12 @@ def checkVJback(data,time_text_0,price_text_0,loaive):
                 
                 # Thay đổi định dạng thời gian
                 time_text = time_text.replace(", ", " ngày ")
+                
+                
+                
                 price_element = wait.until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "div.font_22.color_white.font_money"))
                 )
-                time.sleep(0.5)
                 # Lấy nội dung text của element
                 price_text = price_element.text
                 driver.save_screenshot("browser_screenshot.png")
@@ -565,7 +616,7 @@ def checkVJback(data,time_text_0,price_text_0,loaive):
                 message += f" {row[1]} - {row[0]} "
                 message += f" {time_text} {loaiveve}:"
                 message += f" {str(price_text)}\n\n"
-                SPREADSHEET_ID = '1OwKfz3bhJKai2ph6Fc8GOeN087hBU1jPY9dm02ZisQo'
+                SPREADSHEET_ID = '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190'
                 clear_range = 'CheckVe!L1:Q2'
                 clear_values = [[row[0], row[1],time_text_0, str(price_text_0),loaive,row[6]],[row[1], row[0],time_text, str(price_text),loaiveve,'']]  # Tạo danh sách rỗng cho 2 ô
                 update_sheet(SPREADSHEET_ID, clear_range, clear_values)
@@ -574,17 +625,18 @@ def checkVJback(data,time_text_0,price_text_0,loaive):
                     print("Đã gửi ảnh toàn bộ trình duyệt lên Telegram")
                 else:
                     print("Không thể gửi ảnh toàn bộ trình duyệt lên Telegram")
-                datatele = read_sheet(SPREADSHEET_ID, 'CheckVe!A3:A6')
-                messtele = datatele[0][0] +"\n" + datatele[1][0] +"\n" +datatele[2][0] +"\n" +datatele[3][0] 
-                send_telegram_message(messtele)
+                time.sleep(1)
                 # Lấy thông tin chuyến bay
                 
                 
             except Exception as e:
-                print(f"Lỗi khi chụp bảng thông tin chuyến bay: {str(e)}")
+                SPREADSHEET_ID = '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190'
+                clear_range = 'CheckVe!L1:Q2'
+                clear_values = [[row[0], row[1],time_text_0, str(price_text_0),loaive,row[6]],[row[1], row[0],'Hết Vé', 'Hết Vé','Hết Vé','']]  # Tạo danh sách rỗng cho 2 ô
+                update_sheet(SPREADSHEET_ID, clear_range, clear_values)
                 
     except Exception as e:
-        print(f"Lỗi khi xử lý dữ liệu VJ: {str(e)}")
+        print(f"Lỗi khi xử lý dữ liệu VJback: {str(e)}")
 
 def checkVNA(data):
     """
@@ -621,10 +673,11 @@ def check(data):
     Hàm xử lý dữ liệu từ Google Sheet
     :param data: Dữ liệu đọc được từ sheet
     """
+    global SPREADSHEET_ID
     if data and len(data) > 0:
         # Tạo nội dung tin nhắn
         message = "🔔 <b>Loading...</b>\n\n"
-        
+        message += "Tên khách: "+ data[0][6] +"\n"
         message +=  data[0][0] + " --> " +data[0][1] + " |  " 
         if data[0][5]== "TRUE":
             
@@ -639,6 +692,9 @@ def check(data):
             
         # Gọi các hàm xử lý dữ liệu
         checkVJ(data)
+        datatele = read_sheet(SPREADSHEET_ID, 'CheckVe!A3:A6')
+        messtele = "<b>🟥 " + datatele[0][0] + "</b>\n"+ datatele[1][0] +"\n" +datatele[2][0] +"\n" +datatele[3][0] 
+        send_telegram_message(messtele)
         # checkVNA(data)
 
     else:
@@ -674,7 +730,7 @@ def update_sheet(spreadsheet_id, range_name, values):
 
 def main():
     # ID của spreadsheet
-    SPREADSHEET_ID = '1OwKfz3bhJKai2ph6Fc8GOeN087hBU1jPY9dm02ZisQo'
+    SPREADSHEET_ID = '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190'
     
     print("Bắt đầu kiểm tra dữ liệu từ Google Sheet...")
     print("Nhấn Ctrl+C để dừng chương trình")
@@ -702,7 +758,7 @@ def main():
                 print("\nKhông có dữ liệu hoặc có lỗi khi đọc dữ liệu")
                 close_chrome_driver()
             # Đợi 5 giây trước khi kiểm tra lại
-            time.sleep(5)
+            time.sleep(4)
             
     except KeyboardInterrupt:
         print("\nĐã dừng chương trình")
