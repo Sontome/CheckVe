@@ -14,19 +14,33 @@ from selenium.webdriver.common.keys import Keys
 
 import re
 
-# Đường dẫn đến file credentials JSON
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-SERVICE_ACCOUNT_FILE = 'keysheet.json'  # File credentials của bạn
-SPREADSHEET_ID = '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190'
-# Telegram configuration
-TELEGRAM_BOT_TOKEN = '5737041469:AAG5XdXVwATvldvDpXmnlQT0dmh2-sZ70gE'
-TELEGRAM_CHAT_ID = str(-4622194613) # Đã sửa thành số nguyên
-TELEGRAM_API_URL = f'https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage'
+# Cấu hình
+CONFIG = {
+    'SCOPES': ['https://www.googleapis.com/auth/spreadsheets'],
+    'SERVICE_ACCOUNT_FILE': 'keysheet.json',  # File credentials của bạn
+    'SPREADSHEET_ID': '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190',
+    'TELEGRAM_BOT_TOKEN': '5737041469:AAG5XdXVwATvldvDpXmnlQT0dmh2-sZ70gE',
+    'TELEGRAM_CHAT_ID': str(-4622194613),  # room tele chính
+    
+}
+CONFIGTEST = {
+    'SCOPES': ['https://www.googleapis.com/auth/spreadsheets'],
+    'SERVICE_ACCOUNT_FILE': 'keytest.json',  # File credentials của bạn
+    'SPREADSHEET_ID': '1OwKfz3bhJKai2ph6Fc8GOeN087hBU1jPY9dm02ZisQo',
+    'TELEGRAM_BOT_TOKEN': '5737041469:AAG5XdXVwATvldvDpXmnlQT0dmh2-sZ70gE',
+    'TELEGRAM_CHAT_ID': str(-4698930772),  # room tele chính
+    
+}
+CONFIG=CONFIGTEST
+
+# Telegram API URL
+TELEGRAM_API_URL = f'https://api.telegram.org/bot{CONFIG["TELEGRAM_BOT_TOKEN"]}/sendMessage'
 
 # Biến toàn cục để lưu driver
 driver = None
 username = 'KR242012A18KXM'
 password = 'Grgnbd@34562312'
+
 def setup_chrome_driver():
     """
     Thiết lập và khởi động ChromeDriver
@@ -76,19 +90,19 @@ def send_telegram_message(message, image_path=None):
             with open(image_path, 'rb') as photo:
                 files = {'photo': photo}
                 payload = {
-                    'chat_id': TELEGRAM_CHAT_ID,
+                    'chat_id': CONFIG['TELEGRAM_CHAT_ID'],
                     'caption': message,
                     'parse_mode': 'HTML'
                 }
                 response = requests.post(
-                    f'https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto',
+                    f'https://api.telegram.org/bot{CONFIG["TELEGRAM_BOT_TOKEN"]}/sendPhoto',
                     data=payload,
                     files=files
                 )
         else:
             # Chỉ gửi tin nhắn
             payload = {
-                'chat_id': TELEGRAM_CHAT_ID,
+                'chat_id': CONFIG['TELEGRAM_CHAT_ID'],
                 'text': message,
                 'parse_mode': 'HTML'
             }
@@ -107,7 +121,7 @@ def get_google_sheets_service():
     try:
         # Đọc credentials từ file JSON
         credentials = service_account.Credentials.from_service_account_file(
-            SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+            CONFIG['SERVICE_ACCOUNT_FILE'], scopes=CONFIG['SCOPES'])
         
         # Tạo service
         service = build('sheets', 'v4', credentials=credentials)
@@ -138,6 +152,7 @@ def read_sheet(spreadsheet_id, range_name):
     except Exception as e:
         print(f"Lỗi khi đọc dữ liệu: {str(e)}")
         return None
+
 def get_sheet_id(spreadsheet_id, sheet_name):
     """
     Lấy sheetId của một sheet trong bảng tính.
@@ -162,6 +177,7 @@ def get_sheet_id(spreadsheet_id, sheet_name):
     except Exception as e:
         print(f"Lỗi khi lấy sheetId: {str(e)}")
         return None
+
 def delete_row_by_range(spreadsheet_id, range_name):
     """
     Xóa một hàng trong Google Sheets bằng cách sử dụng range_name.
@@ -218,16 +234,18 @@ def delete_row_by_range(spreadsheet_id, range_name):
     except Exception as e:
         print(f"Lỗi khi xóa hàng: {str(e)}")
         return None
-def checkVJ(data):
+
+def checkVJ(data, spreadsheet_id):
     """
     Hàm xử lý dữ liệu VJ từ Google Sheet
     :param data: Dữ liệu đọc được từ sheet
+    :param spreadsheet_id: ID của spreadsheet
     """
     global driver
     global username
     global password
     print("Đang xử lý dữ liệu VJ...")
-    loaive="ECO"
+    loaive = "ECO"
     # Kiểm tra nếu driver chưa được khởi tạo
     if not driver:
         driver = setup_chrome_driver()
@@ -359,8 +377,6 @@ def checkVJ(data):
                 else :
                     loaive="DELUXE"
                     date_element_deluxe.click()
-            # Đợi bảng thông tin chuyến bay xuất hiện
-            # Đợi 5 giây để bảng hiển thị đầy đủ
             except Exception as e:
                 driver.save_screenshot("browser_screenshot.png")
                 print("Đã chụp ảnh toàn bộ trình duyệt")
@@ -376,15 +392,13 @@ def checkVJ(data):
                     print("Đã gửi ảnh toàn bộ trình duyệt lên Telegram")
                 else:
                     print("Không thể gửi ảnh toàn bộ trình duyệt lên Telegram")
-                if row[5]=="TRUE":
-                    
-                    checkVJback(data,'Hết Vé', 'Hết Vé','Hết Vé')
+                if row[5] == "TRUE":
+                    checkVJback(data, 'Hết Vé', 'Hết Vé', 'Hết Vé', spreadsheet_id)
                     break
-                else :
-                    SPREADSHEET_ID = '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190'
+                else:
                     clear_range = 'CheckVe!L1:Q2'
-                    clear_values = [[row[0], row[1],'Hết Vé', 'Hết Vé','Hết Vé',row[6 ]],['', '','', '','','']]  # Tạo danh sách rỗng cho 2 ô
-                    update_sheet(SPREADSHEET_ID, clear_range, clear_values)
+                    clear_values = [[row[0], row[1], 'Hết Vé', 'Hết Vé', 'Hết Vé', row[6]], ['', '', '', '', '', '']]  # Tạo danh sách rỗng cho 2 ô
+                    update_sheet(spreadsheet_id, clear_range, clear_values)
             try:
                 # Chụp ảnh toàn bộ trình duyệt
                 wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "cdk-overlay-backdrop")) == 0)
@@ -420,32 +434,32 @@ def checkVJ(data):
                     print("Không thể gửi ảnh toàn bộ trình duyệt lên Telegram")
                 
                 # Lấy thông tin chuyến bay
-                if row[5]=="TRUE":
-                    checkVJback(data,time_text, price_text,loaive)
-                else :
-                    SPREADSHEET_ID = '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190'
+                if row[5] == "TRUE":
+                    checkVJback(data, time_text, price_text, loaive, spreadsheet_id)
+                else:
                     clear_range = 'CheckVe!L1:Q2'
-                    clear_values = [[row[0], row[1],time_text, str(price_text),loaive,row[6 ]],['', '','', '','','']]  # Tạo danh sách rỗng cho 2 ô
-                    update_sheet(SPREADSHEET_ID, clear_range, clear_values)
+                    clear_values = [[row[0], row[1], time_text, str(price_text), loaive, row[6]], ['', '', '', '', '', '']]  # Tạo danh sách rỗng cho 2 ô
+                    update_sheet(spreadsheet_id, clear_range, clear_values)
                     time.sleep(1)
                     
                 
             except Exception as e:
-                SPREADSHEET_ID = '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190'
                 clear_range = 'CheckVe!L1:Q2'
-                clear_values = [[row[0], row[1],'Hết Vé', 'Hết Vé','Hết Vé',row[6 ]],['', '','', '','','']]  # Tạo danh sách rỗng cho 2 ô
-                update_sheet(SPREADSHEET_ID, clear_range, clear_values)
+                clear_values = [[row[0], row[1], 'Hết Vé', 'Hết Vé', 'Hết Vé', row[6]], ['', '', '', '', '', '']]  # Tạo danh sách rỗng cho 2 ô
+                update_sheet(spreadsheet_id, clear_range, clear_values)
                 
     except Exception as e:
         print(f"Lỗi khi xử lý dữ liệu VJ: {str(e)}")
-def checkVJback(data,time_text_0,price_text_0,loaive):
+
+def checkVJback(data, time_text_0, price_text_0, loaive, spreadsheet_id):
     """
     Hàm xử lý dữ liệu VJ từ Google Sheet
     :param data: Dữ liệu đọc được từ sheet
+    :param spreadsheet_id: ID của spreadsheet
     """
     global driver
     print("Đang xử lý dữ liệu VJ...")
-    loaiveve="ECO"
+    loaiveve = "ECO"
     # Kiểm tra nếu driver chưa được khởi tạo
     if not driver:
         driver = setup_chrome_driver()
@@ -582,10 +596,9 @@ def checkVJback(data,time_text_0,price_text_0,loaive):
                     print("Đã gửi ảnh toàn bộ trình duyệt lên Telegram")
                 else:
                     print("Không thể gửi ảnh toàn bộ trình duyệt lên Telegram")
-                SPREADSHEET_ID = '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190'
                 clear_range = 'CheckVe!L1:Q2'
-                clear_values = [[row[0], row[1],time_text_0, str(price_text_0),loaive,row[6]],[row[1], row[0],'Hết Vé', 'Hết Vé','Hết Vé','']]  # Tạo danh sách rỗng cho 2 ô
-                update_sheet(SPREADSHEET_ID, clear_range, clear_values)
+                clear_values = [[row[0], row[1], time_text_0, str(price_text_0), loaive, row[6]], [row[1], row[0], 'Hết Vé', 'Hết Vé', 'Hết Vé', '']]  # Tạo danh sách rỗng cho 2 ô
+                update_sheet(spreadsheet_id, clear_range, clear_values)
             # Đợi bảng thông tin chuyến bay xuất hiện
             # Đợi 5 giây để bảng hiển thị đầy đủ
             
@@ -616,10 +629,9 @@ def checkVJback(data,time_text_0,price_text_0,loaive):
                 message += f" {row[1]} - {row[0]} "
                 message += f" {time_text} {loaiveve}:"
                 message += f" {str(price_text)}\n\n"
-                SPREADSHEET_ID = '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190'
                 clear_range = 'CheckVe!L1:Q2'
-                clear_values = [[row[0], row[1],time_text_0, str(price_text_0),loaive,row[6]],[row[1], row[0],time_text, str(price_text),loaiveve,'']]  # Tạo danh sách rỗng cho 2 ô
-                update_sheet(SPREADSHEET_ID, clear_range, clear_values)
+                clear_values = [[row[0], row[1], time_text_0, str(price_text_0), loaive, row[6]], [row[1], row[0], time_text, str(price_text), loaiveve, '']]  # Tạo danh sách rỗng cho 2 ô
+                update_sheet(spreadsheet_id, clear_range, clear_values)
                 
                 if send_telegram_message(message, "browser_screenshot.png"):
                     print("Đã gửi ảnh toàn bộ trình duyệt lên Telegram")
@@ -630,10 +642,9 @@ def checkVJback(data,time_text_0,price_text_0,loaive):
                 
                 
             except Exception as e:
-                SPREADSHEET_ID = '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190'
                 clear_range = 'CheckVe!L1:Q2'
-                clear_values = [[row[0], row[1],time_text_0, str(price_text_0),loaive,row[6]],[row[1], row[0],'Hết Vé', 'Hết Vé','Hết Vé','']]  # Tạo danh sách rỗng cho 2 ô
-                update_sheet(SPREADSHEET_ID, clear_range, clear_values)
+                clear_values = [[row[0], row[1], time_text_0, str(price_text_0), loaive, row[6]], [row[1], row[0], 'Hết Vé', 'Hết Vé', 'Hết Vé', '']]  # Tạo danh sách rỗng cho 2 ô
+                update_sheet(spreadsheet_id, clear_range, clear_values)
                 
     except Exception as e:
         print(f"Lỗi khi xử lý dữ liệu VJback: {str(e)}")
@@ -668,35 +679,33 @@ def checkVNA(data):
     except Exception as e:
         print(f"Lỗi khi xử lý dữ liệu VNA: {str(e)}")
 
-def check(data):
+def check(data, spreadsheet_id):
     """
     Hàm xử lý dữ liệu từ Google Sheet
     :param data: Dữ liệu đọc được từ sheet
+    :param spreadsheet_id: ID của spreadsheet
     """
-    global SPREADSHEET_ID
     if data and len(data) > 0:
         # Tạo nội dung tin nhắn
         message = "🔔 <b>Loading...</b>\n\n"
         message += "Tên khách: "+ data[0][6] +"\n"
         message +=  data[0][0] + " --> " +data[0][1] + " |  " 
         if data[0][5]== "TRUE":
-            
             message += "Khứ Hồi"
-        else :
+        else:
             message += "1 Chiều"
+        
         # Gửi tin nhắn lên Telegram
         if send_telegram_message(message):
             print("Đã gửi thông báo lên Telegram")
         else:
             print("Không thể gửi thông báo lên Telegram")
-            
+        
         # Gọi các hàm xử lý dữ liệu
-        checkVJ(data)
-        datatele = read_sheet(SPREADSHEET_ID, 'CheckVe!A3:A6')
+        checkVJ(data, spreadsheet_id)
+        datatele = read_sheet(spreadsheet_id, 'CheckVe!A3:A6')
         messtele = "<b>🟥 " + datatele[0][0] + "</b>\n"+ datatele[1][0] +"\n" +datatele[2][0] +"\n" +datatele[3][0] 
         send_telegram_message(messtele)
-        # checkVNA(data)
-
     else:
         print("Không có dữ liệu để xử lý")
 
@@ -730,7 +739,7 @@ def update_sheet(spreadsheet_id, range_name, values):
 
 def main():
     # ID của spreadsheet
-    SPREADSHEET_ID = '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190'
+    spreadsheet_id = CONFIG['SPREADSHEET_ID']
     
     print("Bắt đầu kiểm tra dữ liệu từ Google Sheet...")
     print("Nhấn Ctrl+C để dừng chương trình")
@@ -739,24 +748,20 @@ def main():
         # Khởi tạo ChromeDriver
         global driver
         
-        
         while True:
             driver = setup_chrome_driver()
             # Đọc dữ liệu từ A2:E2
-            data = read_sheet(SPREADSHEET_ID, 'Hàng Chờ!A2:I2')
+            data = read_sheet(spreadsheet_id, 'Hàng Chờ!A2:I2')
             if data:
                 print("\nDữ liệu đọc được từ sheet CheckVe (A2:F2):")
                 for row in data:
                     print(row)
                 # Gọi hàm check() để xử lý dữ liệu
                 if data[0][5] and data[0][0] and data[0][1]:
-                    check(data)
+                    check(data, spreadsheet_id)
                 # Xoá các ô A2, B2, F2 trong Google Sheet
-                    delete_row_by_range(SPREADSHEET_ID,'Hàng Chờ!A2:Z2')
-                close_chrome_driver()
-            else:
-                print("\nKhông có dữ liệu hoặc có lỗi khi đọc dữ liệu")
-                close_chrome_driver()
+                delete_row_by_range(spreadsheet_id, 'Hàng Chờ!A2:Z2')
+            close_chrome_driver()
             # Đợi 5 giây trước khi kiểm tra lại
             time.sleep(4)
             
