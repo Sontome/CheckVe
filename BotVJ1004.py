@@ -19,7 +19,7 @@ import re
 
 CONFIG = {
     'SCOPES': ['https://www.googleapis.com/auth/spreadsheets'],
-    'SERVICE_ACCOUNT_FILE': 'keytest.json',  # File credentials của bạn
+    'SERVICE_ACCOUNT_FILE': 'keysheet.json',  # File credentials của bạn
     'SPREADSHEET_ID': '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190',
     'TELEGRAM_BOT_TOKEN': '7359295123:AAGz0rHge3L5gM-XJmyzNq6sayULdHO4-qE',
     'TELEGRAM_CHAT_ID': str(-4622194613),  # room tele chính
@@ -37,7 +37,7 @@ CONFIGTEST = {
     'passwordVJ' : 'Glvav@31613017'
     
 }
-CONFIG=CONFIGTEST
+# CONFIG=CONFIGTEST
 
 
 TELEGRAM_BOT_TOKEN= CONFIG['TELEGRAM_BOT_TOKEN']
@@ -57,7 +57,7 @@ def setup_chrome_driver():
     try:
         # Thiết lập options cho Chrome
         chrome_options = Options()
-        #chrome_options.add_argument("--headless")  # Chạy ẩn (bỏ comment nếu muốn chạy ẩn)
+        chrome_options.add_argument("--headless")  # Chạy ẩn (bỏ comment nếu muốn chạy ẩn)
         
         chrome_options.add_argument("--window-size=1920,1080")
         
@@ -109,6 +109,16 @@ def cut_year(date_str: str, simple: bool = False) -> str:
     except ValueError:
         print(f"❌ Format sai: {date_str}")
         return date_str
+def cat_time(text: str) -> str:
+    """
+    Chuyển 'HH:MM, DD/MM/YYYY' → 'HH:MM ngày DD/MM'
+    """
+    try:
+        dt = datetime.strptime(text, "%H:%M, %d/%m/%Y")
+        return dt.strftime("%H:%M ngày %d/%m")
+    except ValueError:
+        print(f"❌ Format không đúng nhen đại ca: {text}")
+        return text
 def to_value(currency_str: str) -> int:
     """
     Nhận chuỗi kiểu '138,300 KRW' => trả về số nguyên 138300
@@ -123,14 +133,17 @@ def giacuoi(*loai_ve):
     """
     Tính phụ phí cuối cùng dựa theo loại vé:
     - Vé 2 chiều ECO + ECO         → +110000
+    - Vé 2 chiều DELUXE + DELUXE         → +34000
     - Vé 2 chiều ECO + DELUXE      → +70000
     - Vé 1 chiều DELUXE            → +35000
     - Vé 1 chiều ECO               → +72000
     """
     loai_ve = [ve.upper() for ve in loai_ve]  # chuẩn hóa chữ hoa
     if len(loai_ve) == 2:
-        if set(loai_ve) == {"ECO"}:
+        if set(loai_ve) == {"ECO"}:    # 2 ECO  
             return 110_000
+        elif set(loai_ve) == {"DELUXE"}: 
+            return 34_000
         elif "ECO" in loai_ve and "DELUXE" in loai_ve:
             return 70_000
         else:
@@ -147,6 +160,7 @@ def giacuoi(*loai_ve):
     else:
         print("❌ Số lượng vé không hợp lệ:", loai_ve)
         return 0
+
 def to_price(amount: int, currency: str = "KRW", round_to: int = 100) -> str:
     """
     Chuyển số nguyên thành chuỗi kiểu '1,138,300 KRW'
@@ -160,6 +174,7 @@ def to_price(amount: int, currency: str = "KRW", round_to: int = 100) -> str:
     except:
         print(f"❌ Không convert được: {amount}")
         return str(amount)
+
 def send_telegram_message(message, image_paths=None):
     """
     Gửi tin nhắn lên Telegram
@@ -386,6 +401,7 @@ def checkVJ(data):
             
             try:
                 wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "cdk-overlay-backdrop")) == 0)
+                time.sleep(1)
                 date_input = wait.until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "input[formcontrolname='departureDate']"))
                 )
@@ -458,6 +474,7 @@ def checkVJ(data):
                 date_element_eco = wait.until(
                     EC.presence_of_element_located((By.XPATH, "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div[1]/div[3]/div[1]/div/div/div[1]/div[1]/app-list-flight/div[4]/div/div/div/div[2]/div[4]/span/span[1]"))
                 )
+                time.sleep(1)
 
                 date_element_deluxe = wait.until(
                     EC.presence_of_element_located((By.XPATH, "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div[1]/div[3]/div[1]/div/div/div[1]/div[1]/app-list-flight/div[4]/div/div/div/div[2]/div[3]/span/span[1]"))
@@ -494,7 +511,7 @@ def checkVJ(data):
                     checkVJback(data,'Hết Vé', 'Hết Vé',loaive,message)
                     break
                 else:
-                    message +=f"<b>Giá Vé : đổi ngày check lại </b>"
+                    message +=f"<b>\nGiá Vé : đổi ngày check lại </b>"
                     if send_telegram_message(message, ["browser_screenshot_start.png"]):
                         print("Đã gửi ảnh toàn bộ trình duyệt lên Telegram")
                         break
@@ -509,7 +526,7 @@ def checkVJ(data):
                 time_text = time_element.text
                 
                 # Thay đổi định dạng thời gian
-                time_text = time_text.replace(", ", " ngày ")
+                
                 
                 
                 
@@ -528,7 +545,10 @@ def checkVJ(data):
                 else:
                     message += "➡️ 1 Chiều\n\n"
                 message += f" {row[0]} - {row[1]} "
-                message += f" ngày {cut_year(desired_date,simple=True)} {loaive} "
+                if loaive=='ECO' or loaive=='DELUXE':
+                    message += f"{cat_time(time_text)} {loaive} "
+                else :
+                    message += f" ngày {cut_year(desired_date,simple=True)} {loaive} "
                 message += f" {to_price(to_value(price_text))}\n"
                 
                 
@@ -536,12 +556,12 @@ def checkVJ(data):
                 
                 # Lấy thông tin chuyến bay
                 if row[5]=="TRUE":
-                   
+                    print(message)
                     checkVJback(data,time_text, price_text,loaive,message)
                     break
                 else:
-                    giacuoi = to_value(price_text)+giacuoi(loaive)
-                    message += f"<b>\nGiá Vé {to_price((giacuoi))}</b>\n"
+                    giachot = to_value(price_text)+ giacuoi(loaive)
+                    message += f"<b>\nGiá Vé {to_price((giachot))}</b>\n"
                     if send_telegram_message(message, ["browser_screenshot_start.png"]):
                         print("Đã gửi ảnh toàn bộ trình duyệt lên Telegram")
                     else:
@@ -691,12 +711,12 @@ def checkVJback(data,time_text_0,price_text_0,loaive,message):
                 
                 # Gửi ảnh lên Telegram
                 message += f" {row[0]} - {row[1]} "
-                message += f" ngày {cut_year(desired_date,simple=True)} {loaive} "
-                message += f" {to_price(to_value(price_text))}\n"
+                message += f" ngày {cut_year(desired_date,simple=True)} {loaiveve} "
+                message += f"<b>\n\nGiá Vé : đổi ngày check lại </b>"
                 
                 
                 
-                if send_telegram_message(message, ["browser_screenshot_back.png"]):
+                if send_telegram_message(message, ["browser_screenshot_start.png","browser_screenshot_back.png"]):
                     print("Đã gửi ảnh toàn bộ trình duyệt lên Telegram")
                 else:
                     print("Không thể gửi ảnh toàn bộ trình duyệt lên Telegram")
@@ -730,14 +750,19 @@ def checkVJback(data,time_text_0,price_text_0,loaive,message):
                 # Gửi ảnh lên Telegram
                 
                 message += f" {row[1]} - {row[0]} "
-                message += f" ngày {cut_year(desired_date,simple=True)} {loaiveve}:"
-                message += f" {to_price(to_value(price_text_ve))}\n\n"
+                if loaive=='ECO' or loaive=='DELUXE':
+                    message += f"{cat_time(time_text)} {loaiveve} "
+                else :
+                    message += f" ngày {cut_year(desired_date,simple=True)} {loaiveve} "
                 
+                message += f" {to_price(to_value(price_text_ve))}\n\n"
+                print(to_value(price_text_ve),loaive,loaiveve,message)
                 if (loaive == " ⛔ Hết Vé " or loaiveve ==" ⛔ Hết Vé "):
                     message += f"<b>Giá Vé : đổi ngày check lại </b>"
                 else:
-                    giacuoi = to_value(price_text_ve)+giacuoi(loaive,loaiveve)
-                    message += f"<b>Giá Vé :"+ giacuoi   +" </b>"
+                    giachot = to_value(price_text_ve)+ giacuoi(loaive,loaiveve) +to_value(price_text_0)
+                    message += f"<b>Giá Vé "+ to_price(giachot)   +" </b>"
+                print(message)
                 if send_telegram_message(message, ["browser_screenshot_start.png","browser_screenshot_back.png"]):
                     print("Đã gửi ảnh toàn bộ trình duyệt lên Telegram")
                 else:
@@ -859,7 +884,7 @@ def main():
                 print("\nKhông có dữ liệu hoặc có lỗi khi đọc dữ liệu")
                 close_chrome_driver()
             # Đợi 5 giây trước khi kiểm tra lại
-            time.sleep(4)
+            time.sleep(3)
             
     except KeyboardInterrupt:
         print("\nĐã dừng chương trình")
