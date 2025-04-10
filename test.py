@@ -1,4 +1,6 @@
 import time
+import os
+from PIL import Image
 from io import BytesIO
 from datetime import datetime
 from google.oauth2 import service_account
@@ -29,10 +31,11 @@ chat_id = CONFIG['TELEGRAM_CHAT_ID']
 driver = None
 usernameVNA = '5253'
 passwordVNA = 'Ha@112233'
-def send_telegram(message, bot_token=None, chat_id=None, driver=None):
+def send_telegram(message, bot_token=None, chat_id=None, driver=None, element=None, send_photo=True, img_path="fullVNA.png"):
     """
-    Gửi tin nhắn Telegram.
-    - Nếu có driver → chụp screenshot gửi kèm
+    Gửi tin nhắn Telegram:
+    - send_photo = True → gửi ảnh kèm (ưu tiên element nếu có)
+    - img_path → tuỳ chọn tên file ảnh (mặc định: fullVNA.png)
     👉 Trả về (success: bool, message_id: int hoặc None)
     """
     if not bot_token or not chat_id:
@@ -44,22 +47,29 @@ def send_telegram(message, bot_token=None, chat_id=None, driver=None):
     }
 
     try:
-        if driver is not None:
-            screenshot = BytesIO()
-            driver.save_screenshot(screenshot)
-            screenshot.seek(0)
+        if send_photo and (driver or element):
+            # Chụp ảnh theo element hoặc toàn trình duyệt
+            if element:
+                element.screenshot(img_path)
+            elif driver:
+                driver.save_screenshot(img_path)
 
-            files = {
-                'photo': ('screenshot.png', screenshot)
-            }
-            data['caption'] = message
+            with open(img_path, 'rb') as f:
+                files = {
+                    'photo': (os.path.basename(img_path), f)
+                }
+                data['caption'] = message
 
-            response = requests.post(
-                f"https://api.telegram.org/bot{bot_token}/sendPhoto",
-                data=data,
-                files=files
-            )
+                response = requests.post(
+                    f"https://api.telegram.org/bot{bot_token}/sendPhoto",
+                    data=data,
+                    files=files
+                )
+
+            os.remove(img_path)
+
         else:
+            # Gửi tin nhắn chữ
             data['text'] = message
             response = requests.post(
                 f"https://api.telegram.org/bot{bot_token}/sendMessage",
@@ -70,21 +80,25 @@ def send_telegram(message, bot_token=None, chat_id=None, driver=None):
             res_json = response.json()
             return True, res_json.get("result", {}).get("message_id")
         else:
-            print("Gửi lỗi cmnr:", response.text)
+            print("❌ Gửi lỗi cmnr:", response.text)
             return False, None
 
     except Exception as e:
-        print(f"Lỗi khi gửi Telegram: {e}")
+        print(f"❌ Lỗi khi gửi Telegram: {e}")
         return False, None
-
-
-def cut_year(date_str: str) -> str:
+        
+def cut_year(date_str: str, simple: bool = False) -> str:
     """
-    Nhận chuỗi kiểu 'HH:MM ngày DD/MM/YYYY', trả về 'HH:MM ngày DD/MM'
+    - Nếu `simple=False` (default): 'HH:MM ngày DD/MM/YYYY' → 'HH:MM ngày DD/MM'
+    - Nếu `simple=True`: 'YYYY/MM/DD' → 'DD/MM'
     """
     try:
-        dt = datetime.strptime(date_str, "%H:%M ngày %d/%m/%Y")
-        return dt.strftime("%H:%M ngày %d/%m")
+        if simple:
+            dt = datetime.strptime(date_str, "%Y/%m/%d")
+            return dt.strftime("%d/%m")
+        else:
+            dt = datetime.strptime(date_str, "%H:%M ngày %d/%m/%Y")
+            return dt.strftime("%H:%M ngày %d/%m")
     except ValueError:
         print(f"❌ Format sai: {date_str}")
         return date_str
@@ -296,7 +310,7 @@ def update_sheet(spreadsheet_id, range_name, values):
     except Exception as e:
         print(f"Lỗi khi cập nhật dữ liệu: {str(e)}")
         return False
-def checkVNA(data, spreadsheet_id):
+def checkVNA2chieu(data, spreadsheet_id):
     global driver
     global usernameVNA
     global passwordVNA
@@ -320,7 +334,7 @@ def checkVNA(data, spreadsheet_id):
         print(f"Đang nhập username: {usernameVNA}")
         
         # Đợi cho element input username xuất hiện
-        wait = WebDriverWait(driver, 10)
+        wait = WebDriverWait(driver, 15)
         for field_name, value in [("user_agt_Code", usernameVNA), ("user_password", passwordVNA),("user_id", subuser)]:
             input_elem = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, f"input[name='{field_name}']")))
             input_elem.clear()
@@ -339,7 +353,7 @@ def checkVNA(data, spreadsheet_id):
             )
             
             # Nếu nó đang được check thì click để bỏ chọn
-            
+            time.sleep(1)
             print("1 Chiều")
             checkbox.click()
         else:
@@ -363,88 +377,249 @@ def checkVNA(data, spreadsheet_id):
 
         except Exception as e:
             print(f"❌ Không chọn được city {row[1]}: {e}")
-        startdate = row[3]  
-        converted_date = datetime.strptime(startdate, "%m/%d/%Y").strftime("%Y/%m/%d")
-        print(f"📅 Ngày đi: {converted_date}")
+         
+        startdate = datetime.strptime(row[3] , "%m/%d/%Y").strftime("%Y/%m/%d")
+        print(f"📅 Ngày đi: {startdate}")
 
         # Tìm input ngày và set giá trị bằng JavaScript (do readonly)
         date_input = wait.until(
             EC.presence_of_element_located((By.ID, "depdate0_value"))
         )
-        driver.execute_script("arguments[0].value = arguments[1];", date_input, converted_date)
-        if row[5] == "TRUE":
-            backdate = row[4]  
-            converted_date = datetime.strptime(backdate, "%m/%d/%Y").strftime("%Y/%m/%d")
-            print(f"📅 Ngày về: {converted_date}")
+        driver.execute_script("arguments[0].value = arguments[1];", date_input, startdate)
+        if row[5] == "FALSE": 
+            try:
+                
+                print(" 1 chiều không cần điền ngày về")
+            except Exception as e:
+                print(f"❌ Lỗi khi chờ nút check_OW: {e}")
+            
+            
+        else :
+            
+            backdate = datetime.strptime(row[4] , "%m/%d/%Y").strftime("%Y/%m/%d")
+            print(f"📅 Ngày về: {backdate}")
 
             # Tìm input ngày và set giá trị bằng JavaScript (do readonly)
             date_input = wait.until(
                 EC.presence_of_element_located((By.ID, "depdate1_value"))
             )
-            driver.execute_script("arguments[0].value = arguments[1];", date_input, converted_date)
-            driver.execute_script("goSkdFare('L');")
+            driver.execute_script("arguments[0].value = arguments[1];", date_input, backdate)
+        
+             
+        driver.execute_script("goSkdFare('L');")
 
 
-            wait.until(EC.invisibility_of_element_located((By.CSS_SELECTOR, "img[src*='now_waiting12_pwcall.gif']")))
+        WebDriverWait(driver, 20).until(EC.invisibility_of_element_located((By.CSS_SELECTOR, "img[src*='now_waiting12_pwcall.gif']")))
+        
+        # 1. MỞ MENU HÃNG BAY
+        menu_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, '#carFilter > a.atHtit'))
+        )
+        menu_button.click()
+
+        # 2. CHỜ PHẦN FILTER HIỆN RA
+        WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, '#carFilter .carFilter'))
+        )
+
+        # 3. CHỜ VÀ CLICK CHỌN VIETNAM AIRLINES
+        vn_checkbox = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, 'input[type="checkbox"][desc="베트남항공"]'))
+        )
+
+        # 4. NẾU CHƯA CHỌN THÌ MỚI CLICK
+        if not vn_checkbox.is_selected():
+            driver.execute_script("arguments[0].click();", vn_checkbox)
+            print("✅ Đã chọn Vietnam Airlines!")
+        else:
+            print("✅ Vietnam Airlines đã được chọn sẵn rồi!")
+
+
+        try:
             
-            # 1. MỞ MENU HÃNG BAY
-            menu_button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, '#carFilter > a.atHtit'))
+        # 1. MỞ MENU VIAFILTER (nếu chưa mở)
+            wait.until(EC.invisibility_of_element_located(
+                (By.XPATH, "//img[contains(@src, 'now_waiting')]")
+            ))
+            via_menu_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, '#viaFilter > a.atHtit'))
             )
-            menu_button.click()
-
-            # 2. CHỜ PHẦN FILTER HIỆN RA
-            WebDriverWait(driver, 10).until(
-                EC.visibility_of_element_located((By.CSS_SELECTOR, '#carFilter .carFilter'))
+            via_menu_button.click()
+            wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "cdk-overlay-backdrop")))
+            # 2. CHỜ NÓ HIỆN RA
+            
+            
+            time.sleep(1)
+            # 3. TÌM THEO ATTRIBUTE data-text
+            direct_checkbox = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'input[type="checkbox"][data-text="경유1회"]'))
             )
+            driver.execute_script("arguments[0].click();", direct_checkbox)
+            print('khong co backdrop 1')
+            divs = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "atLstInt")))
+            time.sleep(2)
+            # Click vào thằng đầu tiên
+            divs = driver.find_element(By.CLASS_NAME, "atLstInt")
 
-            # 3. CHỜ VÀ CLICK CHỌN VIETNAM AIRLINES
-            vn_checkbox = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, 'input[type="checkbox"][desc="베트남항공"]'))
-            )
+            if divs:
+                try:
+                    divs.click()
+                    print("✅ Đã click chuyến bay đầu tiên")
+                    try:
+                        noituyendi_element = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="fareShow"]/li[1]/div/div/div[3]/div/div[1]/div[2]/ul/li[1]/div[2]/span')))
+                        
+                        noituyendi = noituyendi_element.text
+                    except:
+                        noituyendi =''
+                    if row[5] == "TRUE": 
+                        try:    
+                            noituyenve_element = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="fareShow"]/li[1]/div/div/div[3]/div/div[1]/div[4]/ul/li[1]/div[2]/span')))
+                            noituyenve = noituyenve_element.text
+                        except:
+                            noituyenve =''
+                    # Lấy thời gian đi
+                    timestart = wait.until(EC.presence_of_element_located((
+                        By.XPATH, '//*[@id="fareShow"]/li[1]/div/div/div[2]/ul/li[2]/ul[1]/li[2]'
+                    ))).text
 
-            # 4. NẾU CHƯA CHỌN THÌ MỚI CLICK
-            if not vn_checkbox.is_selected():
-                driver.execute_script("arguments[0].click();", vn_checkbox)
-                print("✅ Đã chọn Vietnam Airlines!")
+                    # Lấy thời gian về
+                    if row[5] == "TRUE": 
+                        timeback = wait.until(EC.presence_of_element_located((
+                        By.XPATH, '//*[@id="fareShow"]/li[1]/div/div/div[2]/ul/li[2]/ul[2]/li[2]'
+                    ))).text
+
+                    # Lấy giá tiền
+                    pricetext = wait.until(EC.presence_of_element_located((
+                        By.XPATH, '//*[@id="fareShow"]/li[1]/div/div/div[2]/ul/li[5]/div/strong'
+                    ))).text
+                    pricetext = to_price(to_value(pricetext))
+
+                    message = "👤Tên Khách: <b> " + data[0][6] + "</b>\n"+row[0]+"-->"+row[1]+"\n\n ---<b>Việt Nam AirLine</b>--- " # icon VNA + in đậm tên khách
+                    # In ra cho chắc
+                    
+                    if data[0][5] == "TRUE":
+                        message += "🔁 Khứ Hồi\n\n"
+                    else:
+                        message += "➡️ 1 Chiều\n\n"
+                    if noituyendi==row[1] and noituyenve==row[0]: 
+                        message += "✅ Bay Thẳng\n\n"
+
+                    else:
+                        message += "🧭 Nối tuyến\n\n"
+                    
+                    if noituyendi==row[1]:
+                        message +=  row[0] + " --> "+ noituyendi + "  " + timestart +" ngày " + cut_year(startdate,simple=True) +"\n"
+                    else:
+                        message +=  row[0] + " --> "+ noituyendi+ " --> " +row[1] + "  " + timestart +" ngày " + cut_year(startdate,simple=True) +"\n"
+                    if row[5] == "TRUE":
+                        if noituyenve==row[0]: 
+                            message += row[1] + " --> "+ noituyenve + "  " + timeback +" ngày " + cut_year(backdate,simple=True) +"\n"
+                        else:        
+                            message += row[1] + " --> "+ noituyenve+ " --> " +row[0] + "  " + timeback +" ngày " + cut_year(backdate,simple=True) +"\n"
+                    message += "<b>\nGiá vé " + pricetext +"</b>"
+
+                    if noituyendi==row[1] and noituyenve==row[0]: 
+                        
+                        print("không cần check bay thẳng nữa")
+                        el = driver.find_element(By.XPATH, '//*[@id="fareShow"]/li[1]/div/div/div[3]/div')
+
+                        # Scroll tới element cho chắc ăn
+                        driver.execute_script("arguments[0].scrollIntoView(true);", el)
+                        time.sleep(2)  # đợi nó render ngon lành
+
+                        # Chụp full page trước
+                        driver.save_screenshot("fullVNA.png")
+
+                        # Lấy vị trí & kích thước element
+                        
+                        send_telegram(message, bot_token=bot_token, chat_id=chat_id, driver=driver,img_path="fullVNA.png")
+                        print(message)
+                        break
+                    print(message)
+                except Exception as e:
+                    print("❌ Lỗi khi click:", e)
             else:
-                print("✅ Vietnam Airlines đã được chọn sẵn rồi!")
+                print("❌ Hết chuyến")
+            # 4. CLICK NẾU CHƯA CHỌN
+            
 
-
+            direct_checkbox = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'input[type="checkbox"][data-text="직항"]'))
+            )
+            driver.execute_script("arguments[0].click();", direct_checkbox)
+            time.sleep(2)
+            print('check vé về thẳng')
             try:
-                
-            # 1. MỞ MENU VIAFILTER (nếu chưa mở)
-                via_menu_button = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, '#viaFilter > a.atHtit'))
-                )
-                via_menu_button.click()
-                print('click hiện lọc vé về ghép')
-                # 2. CHỜ NÓ HIỆN RA
-                time.sleep(2)
-                
-                # 3. TÌM THEO ATTRIBUTE data-text
-                direct_checkbox = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, 'input[type="checkbox"][data-text="경유1회"]'))
-                )
-                driver.execute_script("arguments[0].click();", direct_checkbox)
-                # 4. CLICK NẾU CHƯA CHỌN
-                print('click hiện lọc vé về thẳng ')
-                time.sleep(2)
+                divs = driver.find_element(By.CLASS_NAME, "atLstInt").click()
+                print("✅ Đã click chuyến bay đầu tiên")
+                try:
+                    timestart = wait.until(EC.presence_of_element_located((
+                        By.XPATH, '//*[@id="fareShow"]/li[1]/div/div/div[2]/ul/li[2]/ul[1]/li[2]'
+                    ))).text
 
-                direct_checkbox = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, 'input[type="checkbox"][data-text="직항"]'))
-                )
-                driver.execute_script("arguments[0].click();", direct_checkbox)
-                time.sleep(2)
-                print('chạy ket qua')
-            except Exception as e:
+                    # Lấy thời gian về
+                    timeback = wait.until(EC.presence_of_element_located((
+                        By.XPATH, '//*[@id="fareShow"]/li[1]/div/div/div[2]/ul/li[2]/ul[2]/li[2]'
+                    ))).text
+
+                    # Lấy giá tiền
+                    pricetext = wait.until(EC.presence_of_element_located((
+                        By.XPATH, '//*[@id="fareShow"]/li[1]/div/div/div[2]/ul/li[5]/div/strong'
+                    ))).text
+                    pricetext = to_price(to_value(pricetext))
+
+                    
+                    el = driver.find_element(By.XPATH, '//*[@id="fareShow"]/li[1]/div/div/div[3]/div')
+
+                    # Scroll tới element cho chắc ăn
+                    driver.execute_script("arguments[0].scrollIntoView(true);", el)
+                    time.sleep(2)  # đợi nó render ngon lành
+
+                    # Chụp full page trước
+                    driver.save_screenshot("fullVNAvethang.png")
+
+                    # Lấy vị trí & kích thước element
+                    messagevethang = "👤Tên Khách: <b> " + data[0][6] + "</b>\n"+row[0]+"-->"+row[1]+"\n\n ---<b>Việt Nam AirLine</b>--- " # icon VNA + in đậm tên khách
+                    # In ra cho chắc
+                    if data[0][5] == "TRUE":
+                        messagevethang += "🔁 Khứ Hồi\n\n"
+                    else:
+                        messagevethang += "➡️ 1 Chiều\n\n"
+                    
+                    messagevethang += "✅ Bay Thẳng\n\n"
+
+                    
+                    
+                    
+                    messagevethang +=  row[0] + " --> "+ row[1] + "  " + timestart +" ngày " + cut_year(startdate,simple=True) +"\n"
+                    if row[5] == "TRUE":
+                        
+                        messagevethang += row[1] + " --> "+ row[0] + "  " + timeback +" ngày " + cut_year(backdate,simple=True) +"\n"
+                        messagevethang += "<b>\nGiá vé " + pricetext +"</b>"
+
+                    
+                    send_telegram(messagevethang, bot_token=bot_token, chat_id=chat_id, driver=driver,img_path="fullVNAvethang.png")
+
+                except:
+                    print('chưa load xong tuyến')
+            
+
+            except:
+                print('không có vé về thẳng > báo vé nối tuyến')
+
+                
+                send_telegram(message, bot_token=bot_token, chat_id=chat_id, driver=driver,img_path="fullVNA.png")
+        except Exception as e:
                 print(f" {e}")
-            time.sleep(10000)
+            
             
             # 4. Kiểm tra đã được chọn chưa
             
             
-    time.sleep(10000)
+    
+def checkVNA1chieu(data, spreadsheet_id):
+    pass
+
 def check(data, spreadsheet_id):
     """
     Hàm xử lý dữ liệu từ Google Sheet
@@ -455,23 +630,15 @@ def check(data, spreadsheet_id):
     global chat_id
     if data and len(data) > 0:
         # Tạo nội dung tin nhắn
-        message = "🔔 <b>Loading...</b>\n\n"
-        message += " Tên khách: " + data[0][6] + "\n"
-        message += f" {data[0][0]} --> {data[0][1]} | "
-
-        if data[0][5] == "TRUE":
-            message += "🔁 Khứ Hồi"
-        else:
-            message += "➡️ 1 Chiều"
         
-        # Gửi tin nhắn lên Telegram
-        if send_telegram(message,bot_token,chat_id):
-            print("gửi thông báo lên Telegram")
-        else:
-            print("Không thể gửi thông báo lên Telegram")
         
         # Gọi các hàm xử lý dữ liệu
-        checkVNA(data, spreadsheet_id)
+        if data[0][5] == "TRUE":
+            print("check 2 chiều")
+            checkVNA2chieu(data, spreadsheet_id)
+        else:
+            print("check 1 chiều")
+            checkVNA1chieu(data, spreadsheet_id)
         
     else:
         print("Không có dữ liệu để xử lý")
@@ -498,7 +665,7 @@ def main():
                 if data[0][5] and data[0][0] and data[0][1]:
                     check(data, spreadsheet_id)
                 # Xoá các ô A2, B2, F2 trong Google Sheet
-                #delete_row_by_range(spreadsheet_id, 'Hàng Chờ!A2:Z2')
+                delete_row_by_range(spreadsheet_id, 'Hàng Chờ VNA!A2:Z2')
             close_chrome_driver()
             # Đợi 5 giây trước khi kiểm tra lại
             time.sleep(4000)
