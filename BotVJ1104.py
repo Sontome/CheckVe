@@ -16,14 +16,11 @@ import os
 import re
 
 
-PHI_XUAT_VE = 15_000
-HANH_LY_DELUXE = 2_000
-HANH_LY_ECO = 40_000
 
 
 CONFIG = {
     'SCOPES': ['https://www.googleapis.com/auth/spreadsheets'],
-    'SERVICE_ACCOUNT_FILE': 'keytest.json',  # File credentials của bạn
+    'SERVICE_ACCOUNT_FILE': 'keysheet.json',  # File credentials của bạn
     'SPREADSHEET_ID': '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190',
     'TELEGRAM_BOT_TOKEN': '7359295123:AAGz0rHge3L5gM-XJmyzNq6sayULdHO4-qE',
     'TELEGRAM_CHAT_ID': str(-4622194613),  # room tele chính
@@ -422,7 +419,9 @@ def checkVJ(data):
     global username
     global password
     print("Đang xử lý dữ liệu VJ...")
-    loaive=" ⛔ Hết Vé "
+    loaive = 0
+    time_text = 0 
+    price_text = 0
     # Kiểm tra nếu driver chưa được khởi tạo
     if not driver:
         driver = setup_chrome_driver()
@@ -564,13 +563,14 @@ def checkVJ(data):
                 print("không có vé nào ")
                 
                 # Gửi ảnh lên Telegram
-                message = "👤Tên Khách: <b> " + data[0][6] + "</b>\n"+row[0]+"-->"+row[1]+"\n\n ---<b>VietJet</b>--- " # icon VNA + in đậm tên khách
+                
+                message = "👤Tên Khách: <b> " + data[0][6] + "</b>\n\nHãng: VIETJET - Chặng bay: "+row[0]+"-"+row[1]
                 if data[0][5] == "TRUE":
-                    message += "🔁 Khứ Hồi\n\n"
+                    message += " Khứ Hồi("
                 else:
-                    message += "➡️ 1 Chiều\n\n"
-                message += f" {row[0]} - {row[1]} "
-                message += f" ngày {cut_year(desired_date,simple=True)} {loaive} \n"
+                    message += " 1 Chiều("
+                message += f"Hết Vé \n\n {row[0]} - {row[1]} "
+                message += f" ngày {cut_year(desired_date,simple=True)} Hết Vé \n"
                 
                 
                 
@@ -578,10 +578,10 @@ def checkVJ(data):
               
                 if row[5]=="TRUE":
                     
-                    checkVJback(data,'Hết Vé', 'Hết Vé',loaive,message)
+                    checkVJback(data,time_text, price_text,loaive,desired_date)
                     break
                 else:
-                    message +=f"<b>\nGiá Vé : đổi ngày check lại </b>"
+                    message +=f"<b>\nKhông có vé hãy đổi ngày bay khác </b>"
                     if send_telegram_message(message, ["browser_screenshot_start.png"]):
                         print("Đã gửi ảnh toàn bộ trình duyệt lên Telegram")
                         break
@@ -609,16 +609,17 @@ def checkVJ(data):
                 print("Đã chụp ảnh toàn bộ trình duyệt")
                 
                 # Gửi ảnh lên Telegram
-                message = "👤Tên Khách: <b> " + data[0][6] + "</b>\n"+row[0]+"-->"+row[1]+"\n\n ---<b>VietJet</b>--- " # icon VNA + in đậm tên khách
+                message = "👤Tên Khách: <b> " + data[0][6] + "</b>\n\nHãng: VIETJET - Chặng bay: "+row[0]+"-"+row[1]
+                
                 if data[0][5] == "TRUE":
-                    message += "🔁 Khứ Hồi\n\n"
+                    message += " Khứ Hồi("
                 else:
-                    message += "➡️ 1 Chiều\n\n"
-                message += f" {row[0]} - {row[1]} "
+                    message += " 1 Chiều("
+                message += f"{loaive}: {price_text})\n\n {row[0]} - {row[1]} "
                 if loaive=='ECO' or loaive=='DELUXE':
                     message += f"{cat_time(time_text)}  "
                 else :
-                    message += f" ngày {cut_year(desired_date,simple=True)} {loaive} "
+                    message += f" ngày {cut_year(desired_date,simple=True)}\n"
                 message += f" \n"
                 
                 
@@ -627,11 +628,11 @@ def checkVJ(data):
                 # Lấy thông tin chuyến bay
                 if row[5]=="TRUE":
                     print(message)
-                    checkVJback(data,time_text, price_text,loaive,message)
+                    checkVJback(data,time_text, price_text,loaive,desired_date)
                     break
                 else:
                     giachot = to_value(price_text)+ giacuoi(loaive)
-                    message += f"<b>\nGiá Vé {to_price((giachot))}</b>\n"
+                    message += f"<b>\nVietjet 7kg xách tay, 20kg ký gửi, giá vé = {to_price((giachot))}</b>\n"
                     if send_telegram_message(message, ["browser_screenshot_start.png"]):
                         print("Đã gửi ảnh toàn bộ trình duyệt lên Telegram")
                     else:
@@ -644,13 +645,13 @@ def checkVJ(data):
                 
     except Exception as e:
         print(f"Lỗi khi xử lý dữ liệu VJ: {str(e)}")
-def checkVJback(data,time_text_0,price_text_0,loaive,message):
+def checkVJback(data,time_text_0,price_text_0,loaive,desired_date_0):
     """
     Hàm xử lý dữ liệu VJ từ Google Sheet
     :param data: Dữ liệu đọc được từ sheet
     """
     global driver
-    print("Đang xử lý dữ liệu VJ...")
+    print("Đang xử lý dữ liệu VJBack...")
     loaiveve=" ⛔ Hết Vé "
     # Kiểm tra nếu driver chưa được khởi tạo
     if not driver:
@@ -778,13 +779,24 @@ def checkVJback(data,time_text_0,price_text_0,loaive,message):
                 print('Không có vé chiều về')
                 driver.save_screenshot("browser_screenshot_back.png")
                 print("Đã chụp ảnh toàn bộ trình duyệt")
+                message = "👤Tên Khách: <b> " + data[0][6] + "</b>\n\nHãng: VIETJET - Chặng bay: "+row[0]+"-"+row[1]  # icon VNA + in đậm tên khách
                 
-                # Gửi ảnh lên Telegram
-                message += f" {row[0]} - {row[1]} "
-                message += f" ngày {cut_year(desired_date,simple=True)} {loaiveve} "
-                message += f"<b>\n\nGiá Vé : đổi ngày check lại </b>"
-                
-                
+                if loaive==0:
+                    
+                    message += " Khứ Hồi("
+                    message += f"Hết Vé - Hết Vé \n\n {row[0]} - {row[1]} "
+                    message += f" ngày {cut_year(desired_date_0,simple=True)}Hết Vé\n"
+                    message += f" {row[1]} - {row[1]} ngày {cut_year(desired_date,simple=True)}Hết Vé\n"
+                    message +=f"<b>\nKhông có vé hãy đổi ngày bay khác </b>"
+                    
+                else :
+                    message += " Khứ Hồi("
+                    
+                    message += f"{loaive}: {price_text} - Hết Vé \n\n {row[0]} - {row[1]} "
+                    message += f"{cat_time(time_text_0)} ngày {cut_year(desired_date_0,simple=True)}\n {row[1]} - {row[0]} ngày {cut_year(desired_date,simple=True)}Hết Vé\n"
+                    message +=f"<b>\nKhông có vé hãy đổi ngày bay khác </b>"
+
+
                 
                 if send_telegram_message(message, ["browser_screenshot_start.png","browser_screenshot_back.png"]):
                     print("Đã gửi ảnh toàn bộ trình duyệt lên Telegram")
@@ -819,19 +831,29 @@ def checkVJback(data,time_text_0,price_text_0,loaive,message):
                 
                 # Gửi ảnh lên Telegram
                 
-                message += f" {row[1]} - {row[0]} "
-                if loaive=='ECO' or loaive=='DELUXE':
-                    message += f"{cat_time(time_text)}  "
-                else :
-                    message += f" ngày {cut_year(desired_date,simple=True)} {loaiveve} "
+                message = "👤Tên Khách: <b> " + data[0][6] + "</b>\n\nHãng: VIETJET - Chặng bay: "+row[0]+"-"+row[1] # icon VNA + in đậm tên khách
                 
-                message += f" \n\n"
-                print(to_value(price_text_ve),loaive,loaiveve,message)
-                if (loaive == " ⛔ Hết Vé " or loaiveve ==" ⛔ Hết Vé "):
-                    message += f"<b>Giá Vé : đổi ngày check lại </b>"
-                else:
+                if loaive==0:
+                    
+                    message += " Khứ Hồi("
+                    message += f"Hết Vé - {loaiveve}: {price_text_ve} \n\n {row[0]} - {row[1]} "
+                    message += f" ngày {cut_year(desired_date,simple=True)}Hết Vé\n"
+                    message += f" {row[1]} - {row[0]}{cat_time(time_text)} ngày {cut_year(desired_date,simple=True)}\n"
+                    message +=f"<b>\nKhông có vé hãy đổi ngày bay khác </b>"
+                    
+                else :
+                    message += " Khứ Hồi("
+                    
+                    message += f"{loaive}: {price_text_0} - {loaiveve}: {price_text_ve}\n\n {row[0]} - {row[1]} "
+                    message += f"{cat_time(time_text_0)} ngày {cut_year(desired_date_0,simple=True)}\n {row[1]} - {row[0]} {cat_time(time_text)} ngày {cut_year(desired_date,simple=True)}\n"
+                    
+
+
+
+                    
+                    
                     giachot = to_value(price_text_ve)+ giacuoi(loaive,loaiveve) +to_value(price_text_0)
-                    message += f"<b>Giá Vé "+ to_price(giachot)   +" </b>"
+                    message += f"<b>Vietjet 7kg xách tay, 20kg ký gửi, giá vé = {to_price((giachot))}</b>\n"
                 print(message)
                 if send_telegram_message(message, ["browser_screenshot_start.png","browser_screenshot_back.png"]):
                     print("Đã gửi ảnh toàn bộ trình duyệt lên Telegram")
@@ -842,7 +864,7 @@ def checkVJback(data,time_text_0,price_text_0,loaive,message):
                 
                 
             except Exception as e:
-                print('chưa biet')
+                print(str(e))
                 
     except Exception as e:
         print(f"Lỗi khi xử lý dữ liệu VJback: {str(e)}")
