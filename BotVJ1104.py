@@ -20,9 +20,10 @@ PHI_XUAT_VE = 15_000
 HANH_LY_DELUXE = 2_000
 HANH_LY_ECO = 40_000
 
+
 CONFIG = {
     'SCOPES': ['https://www.googleapis.com/auth/spreadsheets'],
-    'SERVICE_ACCOUNT_FILE': 'keysheet.json',  # File credentials của bạn
+    'SERVICE_ACCOUNT_FILE': 'keytest.json',  # File credentials của bạn
     'SPREADSHEET_ID': '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190',
     'TELEGRAM_BOT_TOKEN': '7359295123:AAGz0rHge3L5gM-XJmyzNq6sayULdHO4-qE',
     'TELEGRAM_CHAT_ID': str(-4622194613),  # room tele chính
@@ -40,7 +41,7 @@ CONFIGTEST = {
     'passwordVJ' : 'Glvav@31613017'
     
 }
-CONFIG=CONFIGTEST
+#CONFIG=CONFIGTEST
 
 
 TELEGRAM_BOT_TOKEN= CONFIG['TELEGRAM_BOT_TOKEN']
@@ -57,9 +58,11 @@ CONFIG_GIA_FILE = "config_gia.json"
 
 # 🔧 Giá mặc định
 DEFAULT_CONFIG_GIA = {
-    "PHI_XUAT_VE": 15000,
     "HANH_LY_DELUXE": 2000,
-    "HANH_LY_ECO": 40000
+    "HANH_LY_ECO": 40000,
+    "PHI_XUAT_VE_2_CHIEU": 15000,
+    "PHI_XUAT_VE_1CH_DELUXE": 40000,
+    "PHI_XUAT_VE_1CH_ECO": 32000
 }
 
 # 📦 Load cấu hình giá
@@ -69,9 +72,11 @@ def load_config_gia():
             with open(CONFIG_GIA_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 config_loaded = {
-                    "PHI_XUAT_VE": int(data.get("PHI_XUAT_VE", DEFAULT_CONFIG_GIA["PHI_XUAT_VE"])),
+                    "PHI_XUAT_VE_2_CHIEU": int(data.get("PHI_XUAT_VE_2_CHIEU", DEFAULT_CONFIG_GIA["PHI_XUAT_VE_2_CHIEU"])),
                     "HANH_LY_DELUXE": int(data.get("HANH_LY_DELUXE", DEFAULT_CONFIG_GIA["HANH_LY_DELUXE"])),
-                    "HANH_LY_ECO": int(data.get("HANH_LY_ECO", DEFAULT_CONFIG_GIA["HANH_LY_ECO"]))
+                    "HANH_LY_ECO": int(data.get("HANH_LY_ECO", DEFAULT_CONFIG_GIA["HANH_LY_ECO"])),
+                    "PHI_XUAT_VE_1CH_DELUXE": int(data.get("PHI_XUAT_VE_1CH_DELUXE", DEFAULT_CONFIG_GIA["PHI_XUAT_VE_1CH_DELUXE"])),
+                    "PHI_XUAT_VE_1CH_ECO": int(data.get("PHI_XUAT_VE_1CH_ECO", DEFAULT_CONFIG_GIA["PHI_XUAT_VE_1CH_ECO"])),
                 }
 
                 # 🖨️ In ra log
@@ -199,8 +204,10 @@ def to_value(currency_str: str) -> int:
         return 0
 def giacuoi(*loai_ve):
     loai_ve = [ve.upper() for ve in loai_ve]
-    tong = CONFIG_GIA["PHI_XUAT_VE"]
+    so_ve = len(loai_ve)
+    tong = 0
 
+    # Tính phí hành lý
     for ve in loai_ve:
         if ve == "DELUXE":
             tong += CONFIG_GIA["HANH_LY_DELUXE"]
@@ -209,6 +216,18 @@ def giacuoi(*loai_ve):
         else:
             print(f"❌ Loại vé không hợp lệ: {ve}")
             return 0
+
+    # Tính phí xuất vé
+    if so_ve == 2:
+        tong += CONFIG_GIA["PHI_XUAT_VE_2_CHIEU"]
+    elif so_ve == 1:
+        if loai_ve[0] == "DELUXE":
+            tong += CONFIG_GIA["PHI_XUAT_VE_1CH_DELUXE"]
+        elif loai_ve[0] == "ECO":
+            tong += CONFIG_GIA["PHI_XUAT_VE_1CH_ECO"]
+    else:
+        print("❌ Số lượng vé không hợp lệ:", so_ve)
+        return 0
 
     return tong
 
@@ -597,10 +616,10 @@ def checkVJ(data):
                     message += "➡️ 1 Chiều\n\n"
                 message += f" {row[0]} - {row[1]} "
                 if loaive=='ECO' or loaive=='DELUXE':
-                    message += f"{cat_time(time_text)} {loaive} "
+                    message += f"{cat_time(time_text)}  "
                 else :
                     message += f" ngày {cut_year(desired_date,simple=True)} {loaive} "
-                message += f" {to_price(to_value(price_text))}\n"
+                message += f" \n"
                 
                 
                 
@@ -802,11 +821,11 @@ def checkVJback(data,time_text_0,price_text_0,loaive,message):
                 
                 message += f" {row[1]} - {row[0]} "
                 if loaive=='ECO' or loaive=='DELUXE':
-                    message += f"{cat_time(time_text)} {loaiveve} "
+                    message += f"{cat_time(time_text)}  "
                 else :
                     message += f" ngày {cut_year(desired_date,simple=True)} {loaiveve} "
                 
-                message += f" {to_price(to_value(price_text_ve))}\n\n"
+                message += f" \n\n"
                 print(to_value(price_text_ve),loaive,loaiveve,message)
                 if (loaive == " ⛔ Hết Vé " or loaiveve ==" ⛔ Hết Vé "):
                     message += f"<b>Giá Vé : đổi ngày check lại </b>"
