@@ -38,7 +38,7 @@ CONFIGTEST = {
     'passwordVJ' : 'Glvav@31613017'
     
 }
-#CONFIG=CONFIGTEST
+CONFIG=CONFIGTEST
 
 
 TELEGRAM_BOT_TOKEN= CONFIG['TELEGRAM_BOT_TOKEN']
@@ -632,7 +632,7 @@ def checkVJ(data):
                     break
                 else:
                     giachot = to_value(price_text)+ giacuoi(loaive)
-                    message += f"<b>\nVietjet 7kg xách tay, 20kg ký gửi, giá vé = {to_price((giachot))}</b>\n"
+                    message += f"<b>Vietjet 7kg xách tay, 20kg ký gửi, giá vé = {to_price((giachot))}</b>\n"
                     if send_telegram_message(message, ["browser_screenshot_start.png"]):
                         print("Đã gửi ảnh toàn bộ trình duyệt lên Telegram")
                     else:
@@ -845,7 +845,7 @@ def checkVJback(data,time_text_0,price_text_0,loaive,desired_date_0):
                     message += " Khứ Hồi("
                     
                     message += f"{loaive}: {price_text_0} - {loaiveve}: {price_text_ve}\n\n {row[0]} - {row[1]} "
-                    message += f"{cat_time(time_text_0)} ngày {cut_year(desired_date_0,simple=True)}\n {row[1]} - {row[0]} {cat_time(time_text)} ngày {cut_year(desired_date,simple=True)}\n"
+                    message += f"{cat_time(time_text_0)}\n {row[1]} - {row[0]} {cat_time(time_text)}\n"
                     
 
 
