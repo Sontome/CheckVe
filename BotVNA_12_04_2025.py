@@ -178,7 +178,7 @@ def send_telegram(message, bot_token=None, chat_id=None, driver=None, element=No
             res_json = response.json()
             return True, res_json.get("result", {}).get("message_id")
         else:
-            print("❌ Gửi lỗi cmnr:", response.text)
+            print("❌ Gửi lỗi :", response.text)
             return False, None
 
     except Exception as e:
@@ -236,7 +236,7 @@ def setup_chrome_driver():
         chrome_options = Options()
         #chrome_options.add_argument("--headless")  # Chạy ẩn (bỏ comment nếu muốn chạy ẩn)
         
-        chrome_options.add_argument("--window-size=1080,760")
+        #chrome_options.add_argument("--window-size=1080,760")
         
         # Khởi tạo service và driver
         
@@ -581,9 +581,9 @@ def checkVNA2chieu(data, spreadsheet_id):
                 giachot = to_value(pricetext) + giacuoi("2_CHIEU")
                 # Lấy vị trí & kích thước element
                 message = "👤Tên Khách: <b> " + data[0][6] + "</b>\n\nHãng: VNA - Chặng bay: "+row[0]+"-"+row[1]+" Khứ Hồi ( Bay Thẳng )\n\n "
-                message += row[0]+"-"+row[1]+" ngày "+cut_year(startdate,simple=True)+"\n "
-                message += row[1]+"-"+row[0]+" ngày "+cut_year(backdate,simple=True)+"\n"
-                message += f"<b>Giá vé {to_price(giachot)}</b>"
+                message += row[0]+"-"+row[1]+ " " + timestart+" ngày "+cut_year(startdate,simple=True)+"\n "
+                message += row[1]+"-"+row[0]+ " " + timeback+" ngày "+cut_year(backdate,simple=True)+"\n"
+                message += f"<b>Vietnam Airlines 12kg xách tay, 46kg ký gửi, giá vé = {to_price(giachot)}</b>"
                 
                 
                 print(message)
@@ -671,7 +671,7 @@ def checkVNA2chieu(data, spreadsheet_id):
                         message += row[1] + "-"+ noituyenve + " " + timeback +" ngày " + cut_year(backdate,simple=True) +"\n"
                     else:        
                         message += row[1] + "-"+ noituyenve+ "-" +row[0] + " " + timeback +" ngày " + cut_year(backdate,simple=True) +"\n"
-                    message += f"<b>Giá vé {to_price(giachot)}</b>"
+                    message += f"<b>Vietnam Airlines 12kg xách tay, 46kg ký gửi, giá vé = {to_price(giachot)}</b>"
 
                     
                         
@@ -873,7 +873,7 @@ def checkVNA1chieu(data, spreadsheet_id):
                 message = "👤Tên Khách: <b> " + data[0][6] + "</b>\n\nHãng: VNA - Chặng bay: "+row[0]+"-"+row[1]+" 1 Chiều ( Bay Thẳng )\n\n "
                 message += row[0]+"-"+row[1]+ " " + timestart+" ngày "+cut_year(startdate,simple=True)+"\n"
                 
-                message += f"<b>Giá vé {to_price(giachot)}</b>"
+                message += f"<b>Vietnam Airlines 12kg xách tay, 46kg ký gửi, giá vé = {to_price(giachot)}</b>"
                 
                 
                 print(message)
@@ -949,7 +949,7 @@ def checkVNA1chieu(data, spreadsheet_id):
                     message +=  row[0] + "-"+ noituyendi+ "-" +row[1] + " " + timestart +" ngày " + cut_year(startdate,simple=True) +"\n"
                     
                     
-                    message += f"<b>Giá vé {to_price(giachot)}</b>"
+                    message += f"<b>Vietnam Airlines 12kg xách tay, 46kg ký gửi, giá vé = {to_price(giachot)}</b>"
 
                     
                         
