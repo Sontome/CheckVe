@@ -20,7 +20,7 @@ import re
 
 CONFIG = {
     'SCOPES': ['https://www.googleapis.com/auth/spreadsheets'],
-    'SERVICE_ACCOUNT_FILE': 'keysheet.json',  # File credentials của bạn
+    'SERVICE_ACCOUNT_FILE': 'keysheet_vj.json',  # File credentials của bạn
     'SPREADSHEET_ID': '1RyL5_rm7wFyR6VPpOl2WrsgFjbz2m1cNtATXR7DK190',
     'TELEGRAM_BOT_TOKEN': '7359295123:AAGz0rHge3L5gM-XJmyzNq6sayULdHO4-qE',
     'TELEGRAM_CHAT_ID': str(-4622194613),  # room tele chính
@@ -38,7 +38,7 @@ CONFIGTEST = {
     'passwordVJ' : 'Glvav@31613017'
     
 }
-CONFIG=CONFIGTEST
+#CONFIG=CONFIGTEST
 
 
 TELEGRAM_BOT_TOKEN= CONFIG['TELEGRAM_BOT_TOKEN']
@@ -51,7 +51,7 @@ driver = None
 username = CONFIG["usernameVJ"]
 password = CONFIG["passwordVJ"]
 # 🗂️ File config
-CONFIG_GIA_FILE = "config_gia.json"
+CONFIG_GIA_FILE = "config_gia_vj.json"
 
 # 🔧 Giá mặc định
 DEFAULT_CONFIG_GIA = {
@@ -84,9 +84,9 @@ def load_config_gia():
                 input("⏸️ Ấn Enter để tiếp tục...")
                 return config_loaded
         except Exception as e:
-            print("❌ Lỗi khi đọc config_gia.json:", e)
+            print("❌ Lỗi khi đọc config_gia.json_vj:", e)
 
-    print("⚠️ Không tìm thấy hoặc lỗi file config_gia.json, dùng mặc định:")
+    print("⚠️ Không tìm thấy hoặc lỗi file config_gia_vj.json, dùng mặc định:")
     for key, value in DEFAULT_CONFIG_GIA.items():
         print(f"  - {key}: {value:,}đ")
 
@@ -228,7 +228,7 @@ def giacuoi(*loai_ve):
 
     return tong
 
-def to_price(amount: int, currency: str = "KRW", round_to: int = 100) -> str:
+def to_price(amount: int, currency: str = "w", round_to: int = 100) -> str:
     """
     Chuyển số nguyên thành chuỗi kiểu '1,138,300 KRW'
     Làm tròn đến gần nhất round_to (mặc định 100)
@@ -236,8 +236,8 @@ def to_price(amount: int, currency: str = "KRW", round_to: int = 100) -> str:
     try:
         # Làm tròn đến gần nhất 'round_to'
         rounded = round(amount / round_to) * round_to
-        formatted = f"{rounded:,}"
-        return f"{formatted} {currency}"
+        formatted = f"{rounded:,}".replace(",", ".")
+        return f"{formatted}{currency}"
     except:
         print(f"❌ Không convert được: {amount}")
         return str(amount)
@@ -334,7 +334,7 @@ def get_sheet_id(spreadsheet_id, sheet_name):
     """
     Lấy sheetId của một sheet trong bảng tính.
     :param spreadsheet_id: ID của spreadsheet
-    :param sheet_name: Tên sheet (ví dụ: 'Hàng Chờ')
+    :param sheet_name: Tên sheet (ví dụ: 'Hàng Chờ VIETJET')
     :return: sheetId nếu tìm thấy, None nếu không tìm thấy
     """
     try:
@@ -358,7 +358,7 @@ def delete_row_by_range(spreadsheet_id, range_name):
     """
     Xóa một hàng trong Google Sheets bằng cách sử dụng range_name.
     :param spreadsheet_id: ID của spreadsheet
-    :param range_name: Phạm vi cần xóa (ví dụ: 'Hàng Chờ!A2:Z2')
+    :param range_name: Phạm vi cần xóa (ví dụ: 'Hàng Chờ VIETJET!A2:Z2')
     """
     try:
         service = get_google_sheets_service()
@@ -961,7 +961,7 @@ def main():
         while True:
             driver = setup_chrome_driver()
             # Đọc dữ liệu từ A2:E2
-            data = read_sheet(SPREADSHEET_ID, 'Hàng Chờ!A2:I2')
+            data = read_sheet(SPREADSHEET_ID, 'Hàng Chờ VIETJET!A2:I2')
             if data:
                 print("\nDữ liệu đọc được từ sheet CheckVe (A2:F2):")
                 for row in data:
@@ -970,7 +970,7 @@ def main():
                 if data[0][5] and data[0][0] and data[0][1]:
                     check(data)
                 # Xoá các ô A2, B2, F2 trong Google Sheet
-                    delete_row_by_range(SPREADSHEET_ID,'Hàng Chờ!A2:Z2')
+                    delete_row_by_range(SPREADSHEET_ID,'Hàng Chờ VIETJET!A2:Z2')
                 close_chrome_driver()
             else:
                 print("\nKhông có dữ liệu hoặc có lỗi khi đọc dữ liệu")
