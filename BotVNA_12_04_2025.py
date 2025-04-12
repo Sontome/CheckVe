@@ -447,113 +447,140 @@ def checkVNA2chieu(data, spreadsheet_id):
         wait = WebDriverWait(driver, 20)
         
         print("2 Chiều")
-        try: #chọn nơi đi đến ( nếu từ nước ngoài thì except)
-            start = wait.until(
-                EC.presence_of_element_located((By.ID, "dep0"))
-            )
-            Select(start).select_by_value(row[0])
-            print(f"🛬 Chọn sân bay đi: {row[0]}")
-            # Mở city popup
-            driver.find_element(By.ID, "arr0_text").click()
+        try:
 
-            # Log cho vui
-            print(f"🛬 Chọn sân bay đến: {row[1]}")
-
-            # Đợi label xuất hiện và click bằng JavaScript
-            try:
-                label = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, f"label[for='{row[1]}']"))
+            try: #chọn nơi đi đến ( nếu từ nước ngoài thì except)
+                start = wait.until(
+                    EC.presence_of_element_located((By.ID, "dep0"))
                 )
-                driver.execute_script("arguments[0].click();", label)
+                Select(start).select_by_value(row[0])
+                start = wait.until(
+                    EC.presence_of_element_located((By.ID, "arr1"))
+                )
+                Select(start).select_by_value(row[0])
+                print(f"🛬 Chọn sân bay đi: {row[0]}")
+                # Mở city popup
+                driver.find_element(By.ID, "arr0_text").click()
 
-            except Exception as e:
-                print(f"❌ Không chọn được city {row[1]}: {e}")
-            
-            startdate = datetime.strptime(row[3] , "%m/%d/%Y").strftime("%Y/%m/%d")
-            print(f"📅 Ngày đi: {startdate}")
+                # Log cho vui
+                print(f"🛬 Chọn sân bay đến: {row[1]}")
 
-            # Tìm input ngày và set giá trị bằng JavaScript (do readonly)
-            date_input = wait.until(
-                EC.presence_of_element_located((By.ID, "depdate0_value"))
-            )
-            driver.execute_script("arguments[0].value = arguments[1];", date_input, startdate)
-            if row[5] == "FALSE": 
+                # Đợi label xuất hiện và click bằng JavaScript
                 try:
-                    
-                    print(" 1 chiều không cần điền ngày về")
+                    label = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, f"label[for='{row[1]}']"))
+                    )
+                    driver.execute_script("arguments[0].click();", label)
+
                 except Exception as e:
-                    print(f"❌ Lỗi khi chờ nút check_OW: {e}")
+                    print(f"❌ Không chọn được city {row[1]}: {e}")
+                    message = "👤Tên Khách: <b> " + data[0][6] + "</b>\n\nHãng: VNA - Chặng bay: "+row[0]+"-"+row[1]+" Khứ Hồi ( Hết Vé )\n\n "
+                    
+                    message += "<b>Trang web không hỗ trợ chặng đầu hoặc cuối, hãy đổi chặng bay khác </b>"
+                    
+                    print(message)
+                    send_telegram(message, bot_token=bot_token, chat_id=chat_id)
+                    break
+
                 
-                
-            else :
-                
-                backdate = datetime.strptime(row[4] , "%m/%d/%Y").strftime("%Y/%m/%d")
-                print(f"📅 Ngày về: {backdate}")
+                startdate = datetime.strptime(row[3] , "%m/%d/%Y").strftime("%Y/%m/%d")
+                print(f"📅 Ngày đi: {startdate}")
 
                 # Tìm input ngày và set giá trị bằng JavaScript (do readonly)
                 date_input = wait.until(
-                    EC.presence_of_element_located((By.ID, "depdate1_value"))
+                    EC.presence_of_element_located((By.ID, "depdate0_value"))
                 )
-                driver.execute_script("arguments[0].value = arguments[1];", date_input, backdate)
-            
-        except: 
-            print("xuất phát từ nước ngoài")
-            checkbox = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, "areasoto"))
-            )
-            checkbox.click()
-            time.sleep(1)
-
-
-            start = wait.until(
-                EC.presence_of_element_located((By.ID, "arr0"))
-            )
-            Select(start).select_by_value(row[1])
-            print(f"🛬 Chọn sân bay đi: {row[0]}")
-            # Mở city popup
-            driver.find_element(By.ID, "dep0_text").click()
-
-            # Log cho vui
-            print(f"🛬 Chọn sân bay đến: {row[1]}")
-
-            # Đợi label xuất hiện và click bằng JavaScript
-            try:
-                label = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, f"label[for='{row[0]}']"))
-                )
-                driver.execute_script("arguments[0].click();", label)
-
-            except Exception as e:
-                print(f"❌ Không chọn được city {row[0]}: {e}")
-            
-            startdate = datetime.strptime(row[3] , "%m/%d/%Y").strftime("%Y/%m/%d")
-            print(f"📅 Ngày đi: {startdate}")
-
-            # Tìm input ngày và set giá trị bằng JavaScript (do readonly)
-            date_input = wait.until(
-                EC.presence_of_element_located((By.ID, "depdate0_value"))
-            )
-            driver.execute_script("arguments[0].value = arguments[1];", date_input, startdate)
-            if row[5] == "FALSE": 
-                try:
+                driver.execute_script("arguments[0].value = arguments[1];", date_input, startdate)
+                if row[5] == "FALSE": 
+                    try:
+                        
+                        print(" 1 chiều không cần điền ngày về")
+                    except Exception as e:
+                        print(f"❌ Lỗi khi chờ nút check_OW: {e}")
                     
-                    print(" 1 chiều không cần điền ngày về")
+                    
+                else :
+                    
+                    backdate = datetime.strptime(row[4] , "%m/%d/%Y").strftime("%Y/%m/%d")
+                    print(f"📅 Ngày về: {backdate}")
+
+                    # Tìm input ngày và set giá trị bằng JavaScript (do readonly)
+                    date_input = wait.until(
+                        EC.presence_of_element_located((By.ID, "depdate1_value"))
+                    )
+                    driver.execute_script("arguments[0].value = arguments[1];", date_input, backdate)
+                
+            except: 
+                print("xuất phát từ nước ngoài")
+                checkbox = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.ID, "areasoto"))
+                )
+                checkbox.click()
+                time.sleep(1)
+
+
+                start = wait.until(
+                    EC.presence_of_element_located((By.ID, "arr0"))
+                )
+                Select(start).select_by_value(row[1])
+                start = wait.until(
+                    EC.presence_of_element_located((By.ID, "dep1"))
+                )
+                Select(start).select_by_value(row[1])
+                print(f"🛬 Chọn sân bay đi: {row[0]}")
+                # Mở city popup
+                driver.find_element(By.ID, "dep0_text").click()
+
+                # Log cho vui
+                print(f"🛬 Chọn sân bay đến: {row[1]}")
+
+                # Đợi label xuất hiện và click bằng JavaScript
+                try:
+                    label = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, f"label[for='{row[0]}']"))
+                    )
+                    driver.execute_script("arguments[0].click();", label)
+
                 except Exception as e:
-                    print(f"❌ Lỗi khi chờ nút check_OW: {e}")
+                    print(f"❌ Không chọn được city {row[0]}: {e}")
+                    message = "👤Tên Khách: <b> " + data[0][6] + "</b>\n\nHãng: VNA - Chặng bay: "+row[0]+"-"+row[1]+" Khứ Hồi ( Hết Vé )\n\n "
+                    
+                    message += "<b>Trang web không hỗ trợ chặng đầu hoặc cuối, hãy đổi chặng bay khác </b>"
+                    
+                    print(message)
+                    send_telegram(message, bot_token=bot_token, chat_id=chat_id)
+                    break                    
                 
-                
-            else :
-                
-                backdate = datetime.strptime(row[4] , "%m/%d/%Y").strftime("%Y/%m/%d")
-                print(f"📅 Ngày về: {backdate}")
+                startdate = datetime.strptime(row[3] , "%m/%d/%Y").strftime("%Y/%m/%d")
+                print(f"📅 Ngày đi: {startdate}")
 
                 # Tìm input ngày và set giá trị bằng JavaScript (do readonly)
                 date_input = wait.until(
-                    EC.presence_of_element_located((By.ID, "depdate1_value"))
+                    EC.presence_of_element_located((By.ID, "depdate0_value"))
                 )
-                driver.execute_script("arguments[0].value = arguments[1];", date_input, backdate)
-            
+                driver.execute_script("arguments[0].value = arguments[1];", date_input, startdate)
+                if row[5] == "FALSE": 
+                    try:
+                        
+                        print(" 1 chiều không cần điền ngày về")
+                    except Exception as e:
+                        print(f"❌ Lỗi khi chờ nút check_OW: {e}")
+                    
+                    
+                else :
+                    
+                    backdate = datetime.strptime(row[4] , "%m/%d/%Y").strftime("%Y/%m/%d")
+                    print(f"📅 Ngày về: {backdate}")
 
+                    # Tìm input ngày và set giá trị bằng JavaScript (do readonly)
+                    date_input = wait.until(
+                        EC.presence_of_element_located((By.ID, "depdate1_value"))
+                    )
+                    driver.execute_script("arguments[0].value = arguments[1];", date_input, backdate)
+
+        except:
+            print("Trang web không hỗ trợ vé ở điểm đi hoặc điểm tới")
+        time.sleep(2)
         driver.execute_script("goSkdFare('L');")
 
 
@@ -807,92 +834,108 @@ def checkVNA1chieu(data, spreadsheet_id):
         time.sleep(1)
         print("1 Chiều")
         try:
-            
-            start = wait.until(
-                EC.presence_of_element_located((By.ID, "dep0"))
-            )
-
-
-            Select(start).select_by_value(row[0])
-            checkbox = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "check_OW"))
-            )
-            time.sleep(1)
-            checkbox = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, "check_OW"))
-            )
-            checkbox.click()
-            print(f"🛬 Chọn sân bay đi: {row[0]}")
-            # Mở city popup
-            driver.find_element(By.ID, "arr0_text").click()
-
-            # Log cho vui
-            print(f"🛬 Chọn sân bay đến: {row[1]}")
-
-            # Đợi label xuất hiện và click bằng JavaScript
             try:
-                label = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, f"label[for='{row[1]}']"))
+                
+                start = wait.until(
+                    EC.presence_of_element_located((By.ID, "dep0"))
                 )
-                driver.execute_script("arguments[0].click();", label)
 
-            except Exception as e:
-                print(f"❌ Không chọn được city {row[1]}: {e}")
+
+                Select(start).select_by_value(row[0])
+                checkbox = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, "check_OW"))
+                )
+                time.sleep(1)
+                checkbox = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.ID, "check_OW"))
+                )
+                checkbox.click()
+                print(f"🛬 Chọn sân bay đi: {row[0]}")
+                # Mở city popup
+                driver.find_element(By.ID, "arr0_text").click()
+
+                # Log cho vui
+                print(f"🛬 Chọn sân bay đến: {row[1]}")
+
+                # Đợi label xuất hiện và click bằng JavaScript
+                try:
+                    label = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, f"label[for='{row[1]}']"))
+                    )
+                    driver.execute_script("arguments[0].click();", label)
+
+                except Exception as e:
+                    print(f"❌ Không chọn được city {row[1]}: {e}")
+                    message = "👤Tên Khách: <b> " + data[0][6] + "</b>\n\nHãng: VNA - Chặng bay: "+row[0]+"-"+row[1]+" 1 Chiều ( Hết Vé )\n\n "
+                    
+                    message += "<b>Trang web không hỗ trợ chặng đầu hoặc cuối, hãy đổi chặng bay khác </b>"
+                    
+                    print(message)
+                    send_telegram(message, bot_token=bot_token, chat_id=chat_id)
+                    break                    
+                
+                startdate = datetime.strptime(row[3] , "%m/%d/%Y").strftime("%Y/%m/%d")
+                print(f"📅 Ngày đi: {startdate}")
+
+                # Tìm input ngày và set giá trị bằng JavaScript (do readonly)
+                date_input = wait.until(
+                    EC.presence_of_element_located((By.ID, "depdate0_value"))
+                )
+                driver.execute_script("arguments[0].value = arguments[1];", date_input, startdate)
+            except:
+                print('xuat phat từ nước ngoài')
+                checkbox = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.ID, "areasoto"))
+                )
+                checkbox.click()
+                time.sleep(1)
+                start = wait.until(
+                    EC.presence_of_element_located((By.ID, "arr0"))
+                )
+                Select(start).select_by_value(row[1])
+                checkbox = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, "check_OW"))
+                )
+                time.sleep(1)
+                checkbox = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.ID, "check_OW"))
+                )
+                checkbox.click()
+                print(f"🛬 Chọn sân bay đi: {row[0]}")
+                # Mở city popup
+                driver.find_element(By.ID, "dep0_text").click()
+
+                # Log cho vui
+                print(f"🛬 Chọn sân bay đến: {row[1]}")
+
+                # Đợi label xuất hiện và click bằng JavaScript
+                try:
+                    label = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, f"label[for='{row[0]}']"))
+                    )
+                    driver.execute_script("arguments[0].click();", label)
+
+                except Exception as e:
+                    print(f"❌ Không chọn được city {row[1]}: {e}")
+                    message = "👤Tên Khách: <b> " + data[0][6] + "</b>\n\nHãng: VNA - Chặng bay: "+row[0]+"-"+row[1]+" 1 Chiều ( Hết Vé )\n\n "
+                    
+                    message += "<b>Trang web không hỗ trợ chặng đầu hoặc cuối, hãy đổi chặng bay khác </b>"
+                    
+                    print(message)
+                    send_telegram(message, bot_token=bot_token, chat_id=chat_id)
+                    break                      
+                
+                startdate = datetime.strptime(row[3] , "%m/%d/%Y").strftime("%Y/%m/%d")
+                print(f"📅 Ngày đi: {startdate}")
+
+                # Tìm input ngày và set giá trị bằng JavaScript (do readonly)
+                date_input = wait.until(
+                    EC.presence_of_element_located((By.ID, "depdate0_value"))
+                )
+                driver.execute_script("arguments[0].value = arguments[1];", date_input, startdate)            
             
-            startdate = datetime.strptime(row[3] , "%m/%d/%Y").strftime("%Y/%m/%d")
-            print(f"📅 Ngày đi: {startdate}")
-
-            # Tìm input ngày và set giá trị bằng JavaScript (do readonly)
-            date_input = wait.until(
-                EC.presence_of_element_located((By.ID, "depdate0_value"))
-            )
-            driver.execute_script("arguments[0].value = arguments[1];", date_input, startdate)
         except:
-            print('xuat phat từ nước ngoài')
-            checkbox = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, "areasoto"))
-            )
-            checkbox.click()
-            time.sleep(1)
-            start = wait.until(
-                EC.presence_of_element_located((By.ID, "arr0"))
-            )
-            Select(start).select_by_value(row[1])
-            checkbox = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "check_OW"))
-            )
-            time.sleep(1)
-            checkbox = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, "check_OW"))
-            )
-            checkbox.click()
-            print(f"🛬 Chọn sân bay đi: {row[0]}")
-            # Mở city popup
-            driver.find_element(By.ID, "dep0_text").click()
-
-            # Log cho vui
-            print(f"🛬 Chọn sân bay đến: {row[1]}")
-
-            # Đợi label xuất hiện và click bằng JavaScript
-            try:
-                label = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, f"label[for='{row[0]}']"))
-                )
-                driver.execute_script("arguments[0].click();", label)
-
-            except Exception as e:
-                print(f"❌ Không chọn được city {row[1]}: {e}")
-            
-            startdate = datetime.strptime(row[3] , "%m/%d/%Y").strftime("%Y/%m/%d")
-            print(f"📅 Ngày đi: {startdate}")
-
-            # Tìm input ngày và set giá trị bằng JavaScript (do readonly)
-            date_input = wait.until(
-                EC.presence_of_element_located((By.ID, "depdate0_value"))
-            )
-            driver.execute_script("arguments[0].value = arguments[1];", date_input, startdate)            
-        
-             
+            print("Trang web không hỗ trợ vé ở điểm đi hoặc điểm tới")    
         driver.execute_script("goSkdFare('L');")
 
 
