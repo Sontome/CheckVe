@@ -37,7 +37,10 @@ CONFIGTEST = {
     
 }
 
-CONFIG=CONFIGTEST
+#CONFIG=CONFIGTEST
+
+
+
 TELEGRAM_API_URL = f'https://api.telegram.org/bot{CONFIG["TELEGRAM_BOT_TOKEN"]}/sendMessage'
 bot_token = CONFIG['TELEGRAM_BOT_TOKEN']
 chat_id = CONFIG['TELEGRAM_CHAT_ID']
@@ -62,21 +65,21 @@ def load_config_gia():
                     "1_CHIEU": int(data.get("1_CHIEU", DEFAULT_CONFIG_GIA["1_CHIEU"])),
                     "2_CHIEU": int(data.get("2_CHIEU", DEFAULT_CONFIG_GIA["2_CHIEU"])),
                     "USER_POWERCALL": str(data.get("USER_POWERCALL", DEFAULT_CONFIG_GIA["USER_POWERCALL"])),
-                    "PW_POWERCALL": str(data.get("PW_POWERCALL", DEFAULT_CONFIG_GIA["PW_POWERCALL"])),
+                    "PW_POWERCALL": str(data.get("PW_POWERCALL", DEFAULT_CONFIG_GIA["PW_POWERCALL"]))
                     
                 }
 
                 # 🖨️ In ra log
                 print("📥 Đã load cấu hình giá từ file:")
                 for key, value in config_loaded.items():
-                    print(f"  - {key}: {value:,}đ")
+                    print(f"  - {key}: {value:}")
 
                 input("⏸️ Ấn Enter để tiếp tục...")
                 return config_loaded
         except Exception as e:
-            print("❌ Lỗi khi đọc config_gia.json:", e)
+            print("❌ Lỗi khi đọc config_gia_vna.json:", e)
 
-    print("⚠️ Không tìm thấy hoặc lỗi file config_gia.json, dùng mặc định:")
+    print("⚠️ Không tìm thấy hoặc lỗi file config_gia_vna.json, dùng mặc định:")
     for key, value in DEFAULT_CONFIG_GIA.items():
         print(f"  - {key}: {value:}")
 
