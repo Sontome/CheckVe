@@ -212,7 +212,7 @@ def to_value(currency_str: str) -> int:
         print(f"❌ Không parse được: {currency_str}")
         return 0
 
-def to_price(amount: int, currency: str = "KRW", round_to: int = 100) -> str:
+def to_price(amount: int, currency: str = "w", round_to: int = 100) -> str:
     """
     Chuyển số nguyên thành chuỗi kiểu '1,138,300 KRW'
     Làm tròn đến gần nhất round_to (mặc định 100)
@@ -220,8 +220,8 @@ def to_price(amount: int, currency: str = "KRW", round_to: int = 100) -> str:
     try:
         # Làm tròn đến gần nhất 'round_to'
         rounded = round(amount / round_to) * round_to
-        formatted = f"{rounded:,}"
-        return f"{formatted} {currency}"
+        formatted = f"{rounded:,}".replace(",", ".")
+        return f"{formatted}{currency}"
     except:
         print(f"❌ Không convert được: {amount}")
         return str(amount)
@@ -635,8 +635,36 @@ def checkVNA2chieu(data, spreadsheet_id):
             time.sleep(1)
             print('check vé về thẳng')
             try:
+                via_menu_button = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, '#viaFilter > a.atHtit'))
+                )
+                via_menu_button.click()
+                time.sleep(1)
+                
+                wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "cdk-overlay-backdrop")))
+                # 2. CHỜ NÓ HIỆN RA
+                
+                
+                time.sleep(1)
+                # 3. TÌM THEO ATTRIBUTE data-text
+                label = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, '//*[@id="viaFilter"]/div/div/dl/dd[1]/label'))
+                )
+                driver.execute_script("arguments[0].click();", label)
+                time.sleep(1)
+                print('click show all lân 1')
+                
+                
+                label = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, '//*[@id="viaFilter"]/div/div/dl/dd[2]/label'))
+                )
+                driver.execute_script("arguments[0].click();", label)  
+                time.sleep(1)
+                print('click bay thẳng')
+                             
                 divs = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "atLstInt")))
                 divs = driver.find_element(By.CLASS_NAME, "atLstInt").click()
+                time.sleep(1)
                 print("✅ Đã click chuyến bay đầu tiên")
                 
                 timestart = wait.until(EC.presence_of_element_located((
@@ -687,20 +715,18 @@ def checkVNA2chieu(data, spreadsheet_id):
 
 
 
-            via_menu_button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, '#viaFilter > a.atHtit'))
-            )
-            via_menu_button.click()
+
             wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "cdk-overlay-backdrop")))
             # 2. CHỜ NÓ HIỆN RA
             
             
-            time.sleep(1)
-            # 3. TÌM THEO ATTRIBUTE data-text
-            direct_checkbox = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, 'input[type="checkbox"][data-text="경유1회"]'))
+            label = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@id="viaFilter"]/div/div/dl/dd[1]/label'))
             )
-            driver.execute_script("arguments[0].click();", direct_checkbox)
+            driver.execute_script("arguments[0].click();", label)
+            time.sleep(1)
+            print('click show all lân 2')
+            time.sleep(1)
             
             divs = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "atLstInt")))
             time.sleep(2)
@@ -991,6 +1017,32 @@ def checkVNA1chieu(data, spreadsheet_id):
             time.sleep(1)
             print('check vé về thẳng')
             try:
+                via_menu_button = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, '#viaFilter > a.atHtit'))
+                )
+                via_menu_button.click()
+                time.sleep(1)
+                
+                wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "cdk-overlay-backdrop")))
+                # 2. CHỜ NÓ HIỆN RA
+                
+                
+                time.sleep(1)
+                # 3. TÌM THEO ATTRIBUTE data-text
+                label = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, '//*[@id="viaFilter"]/div/div/dl/dd[1]/label'))
+                )
+                driver.execute_script("arguments[0].click();", label)
+                time.sleep(1)
+                print('click show all lân 1')
+                
+                
+                label = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, '//*[@id="viaFilter"]/div/div/dl/dd[2]/label'))
+                )
+                driver.execute_script("arguments[0].click();", label)  
+                time.sleep(1)
+                print('click bay thẳng')                  
                 divs = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "atLstInt")))
                 divs = driver.find_element(By.CLASS_NAME, "atLstInt").click()
                 print("✅ Đã click chuyến bay đầu tiên")
@@ -1042,20 +1094,17 @@ def checkVNA1chieu(data, spreadsheet_id):
 
 
             
-            via_menu_button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, '#viaFilter > a.atHtit'))
-            )
-            via_menu_button.click()
+            
             wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "cdk-overlay-backdrop")))
             # 2. CHỜ NÓ HIỆN RA
             
             
-            time.sleep(1)
-            # 3. TÌM THEO ATTRIBUTE data-text
-            direct_checkbox = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, 'input[type="checkbox"][data-text="경유1회"]'))
+            label = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@id="viaFilter"]/div/div/dl/dd[1]/label'))
             )
-            driver.execute_script("arguments[0].click();", direct_checkbox)
+            driver.execute_script("arguments[0].click();", label)
+            time.sleep(1)
+            print('click show all lân 2')
             time.sleep(1)
             divs = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "atLstInt")))
             
