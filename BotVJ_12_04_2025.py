@@ -292,7 +292,7 @@ def send_telegram_message(message, image_paths=None):
     except Exception as e:
         print(f"Lỗi khi gửi tin nhắn Telegram: {str(e)}")
         return False
-
+send_telegram_message("Bot VJ : On")
 def get_google_sheets_service():
     try:
         SCOPES = CONFIG['SCOPES']
@@ -913,6 +913,7 @@ def check(data):
         checkVJ(data)
         
         
+        
         # checkVNA(data)
 
     else:
@@ -968,9 +969,13 @@ def main():
                     print(row)
                 # Gọi hàm check() để xử lý dữ liệu
                 if data[0][5] and data[0][0] and data[0][1]:
-                    check(data)
-                # Xoá các ô A2, B2, F2 trong Google Sheet
-                    delete_row_by_range(SPREADSHEET_ID,'Hàng Chờ VIETJET!A2:Z2')
+                    try:
+                        check(data)
+                    # Xoá các ô A2, B2, F2 trong Google Sheet
+                        delete_row_by_range(SPREADSHEET_ID,'Hàng Chờ VIETJET!A2:Z2')
+                    except:
+                        send_telegram_message('Lỗi bot VJ, reconect') 
+
                 close_chrome_driver()
             else:
                 print("\nKhông có dữ liệu hoặc có lỗi khi đọc dữ liệu")
