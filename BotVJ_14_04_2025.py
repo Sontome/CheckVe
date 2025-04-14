@@ -534,10 +534,12 @@ def checkVJ(data):
             # Tìm element input ngày tháng năm
             
 
-            
-            wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "cdk-overlay-backdrop")) == 0)
-            buttontimkiem= wait.until(EC.element_to_be_clickable((By.XPATH, "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div/div[3]/div[1]/div/div/div[1]/app-date-destination/div/section[1]/div/form/div[6]/div[1]/button")))
-            buttontimkiem.click()
+            try:
+                wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "cdk-overlay-backdrop")) == 0)
+                buttontimkiem= wait.until(EC.element_to_be_clickable((By.XPATH, "/html/body/app-root/app-main-layout/div/div/app-booking-layout/div/div/div[3]/div[1]/div/div/div[1]/app-date-destination/div/section[1]/div/form/div[6]/div[1]/button")))
+                buttontimkiem.click()
+            except:
+                send_telegram_message("Chưa hỗ trợ tuyến  "+row[0]- row[1])
             # Click vào element span
             try:
                 date_element_eco = wait.until(
@@ -644,7 +646,8 @@ def checkVJ(data):
                 
                 
     except Exception as e:
-        print(f"Lỗi khi xử lý dữ liệu VJ: {str(e)}")
+        send_telegram_message("👤Tên Khách: <b> " + data[0][6] + "</b>\n\nHãng: VIETJET - Chặng bay: "+row[0]+"-"+row[1] +"\n\n Chưa hỗ trợ tuyến")
+        
 def checkVJback(data,time_text_0,price_text_0,loaive,desired_date_0):
     """
     Hàm xử lý dữ liệu VJ từ Google Sheet
@@ -867,7 +870,8 @@ def checkVJback(data,time_text_0,price_text_0,loaive,desired_date_0):
                 print(str(e))
                 
     except Exception as e:
-        print(f"Lỗi khi xử lý dữ liệu VJback: {str(e)}")
+        send_telegram_message("👤Tên Khách: <b> " + data[0][6] + "</b>\n\nHãng: VIETJET - Chặng bay: "+row[0]+"-"+row[1] +"\n\n Chưa hỗ trợ tuyến")
+        
 
 def checkVNA(data):
     """
@@ -960,33 +964,36 @@ def main():
         
         
         while True:
-            close_chrome_driver()
-            time.sleep(2)
-            if driver is None:
-                print("Driver bị null, khởi tạo lại...")
-                driver = setup_chrome_driver()
-
-            
-            # Đọc dữ liệu từ A2:E2
-            data = read_sheet(SPREADSHEET_ID, 'Hàng Chờ VIETJET!A2:I2')
-            if data:
-
-                print("\nDữ liệu đọc được từ sheet CheckVe (A2:F2):")
-                for row in data:
-                    print(row)
-                # Gọi hàm check() để xử lý dữ liệu
-                if data[0][5] and data[0][0] and data[0][1]:
-                    try:
-                        check(data)
-                    # Xoá các ô A2, B2, F2 trong Google Sheet
-                        delete_row_by_range(SPREADSHEET_ID,'Hàng Chờ VIETJET!A2:Z2')
-                    except:
-                        send_telegram_message('Lỗi bot VJ, reconect') 
+            try:
+                close_chrome_driver()
+                time.sleep(2)
+                if driver is None:
+                    print("Driver bị null, khởi tạo lại...")
+                    driver = setup_chrome_driver()
 
                 
-            else:
-                print("\nKhông có dữ liệu hoặc có lỗi khi đọc dữ liệu")
-                
+                # Đọc dữ liệu từ A2:E2
+                data = read_sheet(SPREADSHEET_ID, 'Hàng Chờ VIETJET!A2:I2')
+                if data:
+
+                    print("\nDữ liệu đọc được từ sheet CheckVe (A2:F2):")
+                    for row in data:
+                        print(row)
+                    # Gọi hàm check() để xử lý dữ liệu
+                    if data[0][5] and data[0][0] and data[0][1]:
+                        try:
+                            check(data)
+                        # Xoá các ô A2, B2, F2 trong Google Sheet
+                            delete_row_by_range(SPREADSHEET_ID,'Hàng Chờ VIETJET!A2:Z2')
+                        except:
+                            send_telegram_message('Lỗi bot VJ, reconect') 
+
+                    
+                else:
+                    print("\nKhông có dữ liệu hoặc có lỗi khi đọc dữ liệu")
+            except:
+                send_telegram_message('Lỗi bot VJ, reconect') 
+
             # Đợi 5 giây trước khi kiểm tra lại
             time.sleep(4)
             

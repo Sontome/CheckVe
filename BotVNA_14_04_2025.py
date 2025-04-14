@@ -37,7 +37,7 @@ CONFIGTEST = {
     
 }
 
-#CONFIG=CONFIGTEST
+CONFIG=CONFIGTEST
 
 
 
@@ -234,7 +234,7 @@ def setup_chrome_driver():
     try:
         # Thiết lập options cho Chrome
         chrome_options = Options()
-        chrome_options.add_argument("--headless")  # Chạy ẩn (bỏ comment nếu muốn chạy ẩn)
+        #chrome_options.add_argument("--headless")  # Chạy ẩn (bỏ comment nếu muốn chạy ẩn)
         
         chrome_options.add_argument("--window-size=1080,760")
         
@@ -1215,27 +1215,29 @@ def main():
         global driver
         
         while True:
+            try:
+                close_chrome_driver()
+                if driver is None:
+                    print("Driver bị null, khởi tạo lại...")
+                    driver = setup_chrome_driver()
 
-            close_chrome_driver()
-            if driver is None:
-                print("Driver bị null, khởi tạo lại...")
-                driver = setup_chrome_driver()
-
-            
-            # Đọc dữ liệu từ A2:E2
-            data = read_sheet(spreadsheet_id, 'Hàng Chờ VNA!A2:I2')
-            if data:
-                print("\nCó hàng chờ cần check VNA")
-                for row in data:
-                    print(row)
-                # Gọi hàm check() để xử lý dữ liệu
-                if data[0][5] and data[0][0] and data[0][1]:
-                    check(data, spreadsheet_id)
-                # Xoá các ô A2, B2, F2 trong Google Sheet
-                delete_row_by_range(spreadsheet_id, 'Hàng Chờ VNA!A2:Z2')
-            
-            # Đợi 5 giây trước khi kiểm tra lại
-            time.sleep(4)
+                
+                # Đọc dữ liệu từ A2:E2
+                data = read_sheet(spreadsheet_id, 'Hàng Chờ VNA!A2:I2')
+                if data:
+                    print("\nCó hàng chờ cần check VNA")
+                    for row in data:
+                        print(row)
+                    # Gọi hàm check() để xử lý dữ liệu
+                    if data[0][5] and data[0][0] and data[0][1]:
+                        check(data, spreadsheet_id)
+                    # Xoá các ô A2, B2, F2 trong Google Sheet
+                        delete_row_by_range(spreadsheet_id, 'Hàng Chờ VNA!A2:Z2')
+                
+                # Đợi 5 giây trước khi kiểm tra lại
+                time.sleep(4)
+            except:
+                send_telegram("Lỗi không xác định, retry bot ",bot_token,chat_id,send_photo=False)
             
     except KeyboardInterrupt:
         print("\nĐã dừng chương trình")
