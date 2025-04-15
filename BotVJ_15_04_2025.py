@@ -40,7 +40,7 @@ CONFIGTEST = {
     'passwordVJ' : 'Glvav@31613017'
     
 }
-#CONFIG=CONFIGTEST
+CONFIG=CONFIGTEST
 
 
 TELEGRAM_BOT_TOKEN= CONFIG['TELEGRAM_BOT_TOKEN']
@@ -132,6 +132,7 @@ def setup_chrome_driver():
         chrome_options.add_argument("--headless")  # Chạy ẩn (bỏ comment nếu muốn chạy ẩn)
         
         chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options.add_argument('--disable-gpu')
         
         # Khởi tạo service và driver
         
@@ -432,11 +433,7 @@ def checkVJ(data):
     time_text = 0 
     price_text = 0
     # Kiểm tra nếu driver chưa được khởi tạo
-    if not driver:
-        driver = setup_chrome_driver()
-        if not driver:
-            print("Không thể khởi động ChromeDriver cho VJ")
-            return
+    
     
     # TODO: Thêm logic xử lý dữ liệu VJ ở đây
     # Ví dụ: Mở trang web và xử lý dữ liệu
@@ -444,19 +441,27 @@ def checkVJ(data):
         # Mở trang web (thay thế URL bằng trang web thực tế)
         driver.get("https://agents2.vietjetair.com/login")
         print("Đã mở trang web cho VJ")
-        
-        print(f"Đang nhập username: {username}")
+        try:
+            time.sleep(1)
+            print(f"Đang nhập username: {username}")
         
         # Đợi cho element input username xuất hiện
-        wait = WebDriverWait(driver, 30)
-        for field_name, value in [("username", username), ("password", password)]:
-            input_elem = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, f"input[name='{field_name}']")))
-            input_elem.clear()
-            input_elem.send_keys(value)
+        
+            wait = WebDriverWait(driver, 20)
+            for field_name, value in [("username", username), ("password", password)]:
+                input_elem = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, f"input[name='{field_name}']")))
+                input_elem.clear()
+                input_elem.send_keys(value)
+                input_elem = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, f"button[class='mat-focus-indicator button_login font_16 font_button full-width mat-raised-button mat-button-base']")))
+                input_elem.send_keys(Keys.RETURN)
+            
 
-        # Enter sau khi nhập xong password
-        input_elem.send_keys(Keys.RETURN)
-        print(f"✅ Đã nhập username: {username} và nhấn Enter")
+            # Enter sau khi nhập xong password
+            input_elem.send_keys(Keys.RETURN)
+            print(f"✅ Đã nhập username: {username} và nhấn Enter")
+        except: 
+            print('đã đăng nhập')
+        time.sleep(1)
         # Xử lý dữ liệu từ sheet
         for row in data:
             
@@ -618,7 +623,14 @@ def checkVJ(data):
                 price_text = price_element.text
                 driver.save_screenshot("browser_screenshot_start.png")
                 print("Đã chụp ảnh toàn bộ trình duyệt")
-                
+
+                try:
+                    thoat  = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, f"button[class='text_white font_16 font-weight-600']")))
+                    
+                    thoat.click()
+                    thoat.click()
+                except:
+                    print('đăng xuất')
                 # Gửi ảnh lên Telegram
                 message = "👤Tên Khách: <b> " + data[0][6] + "</b>\n\nHãng: VIETJET - Chặng bay: "+row[0]+"-"+row[1]
                 
@@ -666,11 +678,7 @@ def checkVJback(data,time_text_0,price_text_0,loaive,desired_date_0):
     print("Đang xử lý dữ liệu VJBack...")
     loaiveve=" ⛔ Hết Vé "
     # Kiểm tra nếu driver chưa được khởi tạo
-    if not driver:
-        driver = setup_chrome_driver()
-        if not driver:
-            print("Không thể khởi động ChromeDriver cho VJ")
-            return
+    
     
     # TODO: Thêm logic xử lý dữ liệu VJ ở đây
     # Ví dụ: Mở trang web và xử lý dữ liệu
@@ -678,10 +686,29 @@ def checkVJback(data,time_text_0,price_text_0,loaive,desired_date_0):
         # Mở trang web (thay thế URL bằng trang web thực tế)
         driver.get("https://agents2.vietjetair.com/login")
         print("Đã mở trang web cho VJback")
-        
+        try:
+            time.sleep(1)
+            print(f"Đang nhập username: {username}")
         
         # Đợi cho element input username xuất hiện
-        wait = WebDriverWait(driver, 30)
+        
+            wait = WebDriverWait(driver, 20)
+            for field_name, value in [("username", username), ("password", password)]:
+                input_elem = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, f"input[name='{field_name}']")))
+                input_elem.clear()
+                input_elem.send_keys(value)
+                input_elem = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, f"button[class='mat-focus-indicator button_login font_16 font_button full-width mat-raised-button mat-button-base']")))
+                input_elem.send_keys(Keys.RETURN)
+            
+
+            # Enter sau khi nhập xong password
+            input_elem.send_keys(Keys.RETURN)
+            print(f"✅ Đã nhập username: {username} và nhấn Enter")
+        except: 
+            print('đã đăng nhập')
+        time.sleep(1)
+        # Đợi cho element input username xuất hiện
+        wait = WebDriverWait(driver, 20)
         
         # Xử lý dữ liệu từ sheet
         for row in data:
@@ -840,7 +867,13 @@ def checkVJback(data,time_text_0,price_text_0,loaive,desired_date_0):
                 price_text_ve = price_element.text
                 driver.save_screenshot("browser_screenshot_back.png")
                 print("Đã chụp ảnh toàn bộ trình duyệt")
-                
+                try:
+                    thoat  = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, f"button[class='text_white font_16 font-weight-600']")))
+                    
+                    thoat.click()
+                    thoat.click()
+                except:
+                    print('đăng xuất')
                 # Gửi ảnh lên Telegram
                 
                 message = "👤Tên Khách: <b> " + data[0][6] + "</b>\n\nHãng: VIETJET - Chặng bay: "+row[0]+"-"+row[1] # icon VNA + in đậm tên khách
@@ -879,7 +912,7 @@ def checkVJback(data,time_text_0,price_text_0,loaive,desired_date_0):
                 print(str(e))
                 
     except Exception as e:
-        send_telegram_message("👤Tên Khách: <b> " + data[0][6] + "</b>\n\nHãng: VIETJET - Chặng bay: "+row[0]+"-"+row[1] +"\n\n Chưa hỗ trợ tuyến")
+        send_telegram_message("👤Tên Khách: <b> " + data[0][6] + "</b>\n\nHãng: VIETJET - Chặng bay: "+row[0]+"-"+row[1] +"\n\n Chưa hỗ trợ tuyến",["browser_screenshot_start.png","browser_screenshot_back.png"])
         
 
 def checkVNA(data):
@@ -974,8 +1007,7 @@ def main():
         
         while True:
             try:
-                close_chrome_driver()
-                time.sleep(2)
+                
                 if driver is None:
                     print("Driver bị null, khởi tạo lại...")
                     driver = setup_chrome_driver()
@@ -992,12 +1024,15 @@ def main():
                     if data[0][5] and data[0][0] and data[0][1]:
                         try:
                             check(data)
-                        # Xoá các ô A2, B2, F2 trong Google Sheet
                             delete_row_by_range(SPREADSHEET_ID,'Hàng Chờ VIETJET!A2:Z2')
-                        except:
-                            send_telegram_message('Lỗi bot VJ, reconect') 
+                        except Exception as e:
+                            print("💥 Lỗi khi check vé:", e)
+                            send_telegram_message('Lỗi bot VJ, reset lại ChromeDriver!')
+                            close_chrome_driver()
 
-                    
+                    if "ERR_INTERNET_DISCONNECTED" in driver.page_source or "chrome-error" in driver.page_source:
+                        print("🌐 Chrome mất mạng, reset lại driver")
+                        close_chrome_driver()
                 else:
                     print("\nKhông có dữ liệu hoặc có lỗi khi đọc dữ liệu")
             except:
@@ -1008,7 +1043,7 @@ def main():
             
     except KeyboardInterrupt:
         print("\nĐã dừng chương trình")
-        close_chrome_driver()
+     
    
 
 if __name__ == "__main__":
