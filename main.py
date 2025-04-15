@@ -102,6 +102,31 @@ class MainApp(ctk.CTk):
         ctk.CTkButton(top_frame, text="Bắt đầu", command=self.start_check).pack(side="right", padx=10)
         ctk.CTkButton(top_frame, text="Dừng", command=self.stop_check).pack(side="right")
 
+        # === Thanh chọn thông tin tìm kiếm ===
+        form_frame = ctk.CTkFrame(self)
+        form_frame.pack(fill="x", padx=20, pady=(5, 0))
+
+        self.from_combo = ctk.CTkComboBox(form_frame, values=["SGN", "HAN", "DAD"], width=100)
+        self.from_combo.set("SGN")
+        self.from_combo.pack(side="left", padx=5)
+
+        self.to_combo = ctk.CTkComboBox(form_frame, values=["HAN", "SGN", "DAD"], width=100)
+        self.to_combo.set("HAN")
+        self.to_combo.pack(side="left", padx=5)
+
+        self.depart_date = ctk.CTkEntry(form_frame, placeholder_text="Ngày đi (dd-mm-yyyy)", width=130)
+        self.depart_date.pack(side="left", padx=5)
+
+        self.return_date = ctk.CTkEntry(form_frame, placeholder_text="Ngày về (dd-mm-yyyy)", width=130)
+        self.return_date.pack(side="left", padx=5)
+
+        self.passenger_count = ctk.CTkComboBox(form_frame, values=[str(i) for i in range(1, 10)], width=80)
+        self.passenger_count.set("1")
+        self.passenger_count.pack(side="left", padx=5)
+
+        ctk.CTkButton(form_frame, text="Check", command=self.send_form).pack(side="left", padx=10)
+
+        # === Khung log chính ===
         main_frame = ctk.CTkFrame(self)
         main_frame.pack(expand=True, fill="both", padx=20, pady=10)
 
@@ -113,6 +138,7 @@ class MainApp(ctk.CTk):
         self.right_log.pack(side="right", expand=True, fill="both", padx=10, pady=10)
         self.right_log.insert("end", "[VNA Log]")
 
+        # === Progress bar ===
         self.vietjet_progress = ctk.CTkProgressBar(self)
         self.vna_progress = ctk.CTkProgressBar(self)
         self.vietjet_progress.pack(fill="x", padx=25, pady=(0, 5))
@@ -139,6 +165,16 @@ class MainApp(ctk.CTk):
         self.right_log.insert("end", "\n⛔ Đã dừng VNA")
         self.vietjet_progress.set(0)
         self.vna_progress.set(0)
+
+    def send_form(self):
+        from_loc = self.from_combo.get()
+        to_loc = self.to_combo.get()
+        depart = self.depart_date.get()
+        ret = self.return_date.get()
+        pax = self.passenger_count.get()
+
+        self.left_log.insert("end", f"\n📤 Đã gửi yêu cầu: {from_loc} -> {to_loc}, đi: {depart}, về: {ret}, {pax} người")
+        self.left_log.see("end")
 
 if __name__ == "__main__":
     LoginWindow().mainloop()
