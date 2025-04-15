@@ -235,7 +235,7 @@ def setup_chrome_driver():
         # Thiết lập options cho Chrome
         chrome_options = Options()
         chrome_options.add_argument("--headless")  # Chạy ẩn (bỏ comment nếu muốn chạy ẩn)
-        
+        chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument("--window-size=1080,760")
         
         # Khởi tạo service và driver
@@ -435,11 +435,7 @@ def checkVNA2chieu(data, spreadsheet_id):
     print("Đang xử lý dữ liệu VNA 2 chiều ...")
     
     # Kiểm tra nếu driver chưa được khởi tạo
-    if not driver:
-        driver = setup_chrome_driver()
-        if not driver:
-            print("Không thể khởi động ChromeDriver cho VNA")
-            return
+    
     
     # TODO: Thêm logic xử lý dữ liệu VJ ở đây
     # Ví dụ: Mở trang web và xử lý dữ liệu
@@ -461,7 +457,7 @@ def checkVNA2chieu(data, spreadsheet_id):
         input_elem.send_keys(Keys.RETURN)
         print(f"✅ Đã nhập username: {usernameVNA} và nhấn Enter")
     except:
-        print("Lỗi login")
+        print("đã đăng nhập hoặc lỗi login")
     for row in data:
         wait = WebDriverWait(driver, 20)
         
@@ -849,11 +845,7 @@ def checkVNA1chieu(data, spreadsheet_id):
     print("Đang xử lý dữ liệu VNA 1 chiều ...")
     
     # Kiểm tra nếu driver chưa được khởi tạo
-    if not driver:
-        driver = setup_chrome_driver()
-        if not driver:
-            print("Không thể khởi động ChromeDriver cho VNA")
-            return
+    
     
     # TODO: Thêm logic xử lý dữ liệu VJ ở đây
     # Ví dụ: Mở trang web và xử lý dữ liệu
@@ -1235,7 +1227,7 @@ def main():
         
         while True:
             try:
-                close_chrome_driver()
+                
                 if driver is None:
                     print("Driver bị null, khởi tạo lại...")
                     driver = setup_chrome_driver()
@@ -1249,10 +1241,16 @@ def main():
                         print(row)
                     # Gọi hàm check() để xử lý dữ liệu
                     if data[0][5] and data[0][0] and data[0][1]:
-                        check(data, spreadsheet_id)
-                    # Xoá các ô A2, B2, F2 trong Google Sheet
-                        delete_row_by_range(spreadsheet_id, 'Hàng Chờ VNA!A2:Z2')
-                
+                        try:
+                            check(data, spreadsheet_id)
+                        # Xoá các ô A2, B2, F2 trong Google Sheet
+                            delete_row_by_range(spreadsheet_id, 'Hàng Chờ VNA!A2:Z2')
+                        except:
+                            send_telegram("Lỗi không xác định, retry bot VNA",bot_token,chat_id,send_photo=False)
+                            close_chrome_driver()
+                    if "ERR_INTERNET_DISCONNECTED" in driver.page_source or "chrome-error" in driver.page_source:
+                        print("🌐 Chrome mất mạng, reset lại driver")
+                        close_chrome_driver()
                 # Đợi 5 giây trước khi kiểm tra lại
                 time.sleep(4)
             except:
