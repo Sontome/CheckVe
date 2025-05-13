@@ -86,25 +86,37 @@ async def doc_va_loc_ve_re_nhat(data, session, headers, form_data):
                 if not fares_nt_1pc:
                     print("❌ Không có vé phù hợp điều kiện VN + VFR")
                     return None
-                return min(fares_nt_1pc, key=lambda f: int(f.get("MA", 999999999)))
-            return min(fares_thang_1pc, key=lambda f: int(f.get("MA", 999999999)))
+                return {
+                "ve_min": min(fares_nt_1pc, key=lambda f: int(f.get("MA", 999999999))),
+                "all_ve" :fares_nt_1pc
+                }
+            return {
+            "ve_min": min(fares_thang_1pc, key=lambda f: int(f.get("MA", 999999999))),
+            "all_ve" :fares_thang_1pc
+            }
         
-        return min(fares_nt, key=lambda f: int(f.get("MA", 999999999)))
-    return min(fares_thang, key=lambda f: int(f.get("MA", 999999999)))
+        return {
+        "ve_min": min(fares_nt, key=lambda f: int(f.get("MA", 999999999))),
+        "all_ve" :fares_nt
+        }
+    return {
+        "ve_min": min(fares_thang, key=lambda f: int(f.get("MA", 999999999))),
+        "all_ve" :fares_thang
+    }
 
 # ====== 📄 IN THÔNG TIN VÉ ====== #
 def thong_tin_ve(data, sochieu, name):
     if not data:
         return "❌ Không có dữ liệu vé!"
-
+    
     hang = "Vietnam Airlines"
     chang_bay = data.get("AP", "??-??")
     kieubay = "Bay Thẳng" if data.get("VA") == "0" else "Nối Tuyến"
     chieu_text = "1 Chiều" if str(sochieu) == "1" else "Khứ hồi"
     if data.get('IT')=='ADT':
-        hanhly= "12kg xách tay, 23kg ký gửi, giá vé ="
+        hanhly= "10kg xách tay, 23kg ký gửi, giá vé ="
     else:
-        hanhly= "12kg xách tay, 46kg ký gửi, giá vé ="
+        hanhly= "10kg xách tay, 46kg ký gửi, giá vé ="
     thongtin_chang = ""
     for s in data.get("SK", []):
         ga_di = s.get("DA", "??")
@@ -124,7 +136,46 @@ Hãng: {hang} - Chặng bay: {chang_bay} | {chieu_text} ({kieubay})
 {thongtin_chang}
 {hang} {hanhly} {gia_str}
 """
+def thong_tin_ve_tong(data, sochieu, name):
+    if not data:
+        return "❌ Không có dữ liệu vé!"
+    
+    hang = "Vietnam Airlines"
+    chang_bay = data.get("AP", "??-??")
+    kieubay = "Bay Thẳng" if data.get("VA") == "0" else "Nối Tuyến"
+    chieu_text = "1 Chiều" if str(sochieu) == "1" else "Khứ hồi"
+    if data.get('IT')=='ADT':
+        hanhly= "10kg xách tay, 23kg ký gửi, giá vé ="
+    else:
+        hanhly= "10kg xách tay, 46kg ký gửi, giá vé ="
+    thongtin_chang = ""
+    for s in data.get("SK", []):
+        ga_di = s.get("DA", "??")
+        ga_den = s.get("AA", "??")
+        gio_di = format_time(s.get("DT", 0))
+        ngay_di = format_date(str(s.get("DD", "")))
+        ga_noi = s.get("VA1", "??")
+        if ga_noi != "??":
+            thongtin_chang += f"\n {ga_di}-{ga_noi}-{ga_den} {gio_di} ngày {ngay_di}"
+        else:
+            thongtin_chang += f"\n {ga_di}-{ga_den} {gio_di} ngày {ngay_di}"
 
+    gia_ve = int(data.get("MA", 0)) + price_add(sochieu, config_gia)
+    gia_str = to_price(gia_ve)
+    return f"""\n\n-------------------------------
+Hãng: {hang} - Chặng bay: {chang_bay} | {chieu_text} ({kieubay})  
+{thongtin_chang}
+{hang} {hanhly} {gia_str}
+"""
+def thong_tin_ve_all(list_data, sochieu, name):
+    if not list_data or not isinstance(list_data, list):
+        return "❌ Không có danh sách vé hợp lệ!"
+
+    ketqua = []
+    for idx, data in enumerate(list_data, 1):
+        info = thong_tin_ve_tong(data, sochieu, name)
+        ketqua.append(info)
+    return "\n" + "\n" + "-"*30 + "\n".join(ketqua)
 # ====== 🚀 CALL API POWERCALL ====== #
 async def get_vna_flight_options(trip, dep0, arr0, depdate0, depdate1, retdate, sochieu, activedVia="0"):
     with open(COOKIE_FILE, "r", encoding="utf-8") as f:
@@ -143,18 +194,19 @@ async def get_vna_flight_options(trip, dep0, arr0, depdate0, depdate1, retdate, 
     form_data = {
         'mode': 'v3',
         'activedCar': 'VN',
-        'activedCLSS1': 'M,E,S,H,R,L,U,I,Z,W,J,K,T,B,A,N',
-        'activedCLSS2': 'U,E,H,T,A,R,V,Z,N,S,W,Q,K,L,M,Y',
+        'activedCLSS1': 'M,E,S,H,R,L,U,I,Z,W,J,K,T,B,A,N,Q,Y,V',
+        'activedCLSS2': 'M,E,S,H,R,L,U,I,Z,W,J,K,T,B,A,N,Q,Y,V',
         'activedAirport': f"{dep0}-{arr0}-{arr0}-{dep0}",
-        'activedVia': '0,1',
+        
+        'activedVia': '0',
         'activedStatus': 'OK,HL',
-        'activedIDT': 'ADT,VFR,LBR',
+        'activedIDT': 'ADT,VFR',
         'minAirFareView': '10000',
-        'maxAirFareView': '2000000',
+        'maxAirFareView': '1500000',
         'page': '1',
         'sort': 'priceAsc',
-        'interval01Val': '2425',
-        'interval02Val': '1310',
+        'interval01Val': '1000',
+        'interval02Val': '1000',
         'filterTimeSlideMin0': '5',
         'filterTimeSlideMax0': '2355',
         'filterTimeSlideMin1': '5',
@@ -195,7 +247,7 @@ async def get_vna_flight_options(trip, dep0, arr0, depdate0, depdate1, retdate, 
 
     connector = aiohttp.TCPConnector(ssl=False)
 
-    async def call_vna_api(session):
+    async def call_vna_api(session,form_data):
         async with session.post(
             "https://wholesale.powercallair.com/booking/findSkdFareGroup.lts?viewType=xml",
             headers=headers, data=form_data
@@ -216,20 +268,42 @@ async def get_vna_flight_options(trip, dep0, arr0, depdate0, depdate1, retdate, 
             except json.JSONDecodeError:
                 print("khong decode json được")
                 return "INVALID_JSON", text
-
+    
     async with aiohttp.ClientSession(cookies=cookies, connector=connector) as session:
-        status, result = await call_vna_api(session)
+        status, result = await call_vna_api(session,form_data)
         print("gọi api lần 1")
-        status, result = await call_vna_api(session)
+        status, result = await call_vna_api(session,form_data)
         print("gọi api lần 2")
+        fares = result.get("FARES", [])
+        def loc_fare_vn(fare): return fare.get("IT") == "VFR" and fare.get("CA") == "VN" and fare.get("VA") == "0"
+        
+        def loc_fare_vn_1pc(fare): return fare.get("IT") == "ADT" and fare.get("CA") == "VN" and fare.get("VA") == "0"
+        
+        
+        fares_thang = list(filter(loc_fare_vn, fares))
+        fares_thang_1pc = list(filter(loc_fare_vn_1pc, fares))
+        form_data.update({
+            "activedVia": "1"
+
+
+
+        })
+        if not fares_thang and not fares_thang_1pc :
+            print("gọi api lần 3 do ko có bay thẳng")
+            status, result = await call_vna_api(session,form_data)
+
+        
+
+
         #print(result)
         
     if status == "OK":
         print("lưu vào test.json")
         with open("test.json", "w", encoding="utf-8") as f:
             json.dump(result, f, ensure_ascii=False, indent=4)
-
-    return await doc_va_loc_ve_re_nhat(result, session, headers, form_data)
+    kq= await doc_va_loc_ve_re_nhat(result, session, headers, form_data)
+    
+    return kq
 
 # ====== 🧪 HÀM API CHÍNH ====== #
 async def api_vna(dep0, arr0, depdate0, depdate1="", name="khách lẻ", sochieu="1"):
@@ -245,5 +319,7 @@ async def api_vna(dep0, arr0, depdate0, depdate1="", name="khách lẻ", sochieu
         retdate=format_date(depdate1),
         sochieu=sochieu
     )
-    print(result)
-    return thong_tin_ve(result, sochieu, name)
+    
+    all_ve = thong_tin_ve(result.get("ve_min"), sochieu, name)+thong_tin_ve_all(result.get("all_ve"), sochieu, name)
+    print(all_ve)
+    return all_ve
