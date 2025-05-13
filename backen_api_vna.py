@@ -162,7 +162,7 @@ def thong_tin_ve_tong(data, sochieu, name):
 
     gia_ve = int(data.get("MA", 0)) + price_add(sochieu, config_gia)
     gia_str = to_price(gia_ve)
-    return f"""\n\n-------------------------------
+    return f"""\n\n----------------------------------------------
 Hãng: {hang} - Chặng bay: {chang_bay} | {chieu_text} ({kieubay})  
 {thongtin_chang}
 {hang} {hanhly} {gia_str}
