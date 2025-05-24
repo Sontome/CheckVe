@@ -1,180 +1,183 @@
-import customtkinter as ctk
-from tkinter import messagebox
-import json
-import os
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from backend_api_vj import api_vj
+from backen_api_vna import api_vna
+from backend_api_vna_v2 import api_vna_v2,api_vna_rt_v2
+from utils_telegram import send_mess as send_vj
+from utils_telegram_vna import send_mess as send_vna
+from typing import Optional
+from fastapi import Query
+from datetime import datetime
+import asyncio
 
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("blue")
+async def safe_send_vj(result):
+    try:
+        await send_vj(result)
+    except Exception as e:
+        print(f"❌ Lỗi khi gửi Telegram VJ: {e}")
 
-DEFAULT_USER = "1"
-DEFAULT_PASS = "1"
-CONFIG_FILE = "config.json"
+async def safe_send_vna(result):
+    try:
+        await send_vna(result)
+    except Exception as e:
+        print(f"❌ Lỗi khi gửi Telegram VNA: {e}")
+app = FastAPI()
 
-def save_config(data):
-    with open(CONFIG_FILE, "w") as f:
-        json.dump(data, f, indent=4)
+# Bật CORS full quyền
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-def load_config():
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, "r") as f:
-            return json.load(f)
-    return {"vietjet": {}, "vna": {}}
+@app.get("/")
+async def hello():
+    return {"message": "API sẵn sàng"}
 
-class SetupWindow(ctk.CTkToplevel):
-    def __init__(self, parent, airline):
-        super().__init__(parent)
-        self.title(f"Cài đặt {airline}")
-        self.geometry("400x300")
-        self.airline = airline
-        self.config_data = load_config()
+# ====================================================
+# 🛩 VJ ROUTES
+# ====================================================
+@app.get("/vj/check-ve-vj")
+async def check_ve_vj(
+    city_pair: str = Query(...),
+    departure_place: str = Query(""),
+    departure_place_name: str = Query(""),
+    return_place: str = Query(""),
+    return_place_name: str = Query(""),
+    departure_date: str = Query(...),
+    return_date: str = Query(...),
+    adult_count: int = Query(1),
+    child_count: int = Query(0),
+    sochieu: str = Query(2),
+    name: str = Query("")
+):
+    result = await api_vj(
+        city_pair=city_pair,
+        departure_place=departure_place,
+        departure_place_name=departure_place_name,
+        return_place=return_place,
+        return_place_name=return_place_name,
+        departure_date=departure_date,
+        return_date=return_date,
+        adult_count=adult_count,
+        child_count=child_count,
+        sochieu=sochieu,
+        name=name
+    )
+    asyncio.create_task(safe_send_vj(result))
+    return {"message": result}
 
-        ctk.CTkLabel(self, text="User", font=("Segoe UI", 14)).pack(pady=(20, 5))
-        self.user_entry = ctk.CTkEntry(self, width=300)
-        self.user_entry.pack()
-
-        ctk.CTkLabel(self, text="Password", font=("Segoe UI", 14)).pack(pady=(15, 5))
-        self.pass_entry = ctk.CTkEntry(self, width=300, show="*")
-        self.pass_entry.pack()
-
-        ctk.CTkLabel(self, text="Website", font=("Segoe UI", 14)).pack(pady=(15, 5))
-        self.link_entry = ctk.CTkEntry(self, width=300)
-        self.link_entry.pack()
-
-        ctk.CTkButton(self, text="Lưu", command=self.save).pack(pady=20)
-
-        self.load_existing_data()
-
-    def load_existing_data(self):
-        info = self.config_data.get(self.airline.lower(), {})
-        self.user_entry.insert(0, info.get("user", ""))
-        self.pass_entry.insert(0, info.get("pass", ""))
-        self.link_entry.insert(0, info.get("link", ""))
-
-    def save(self):
-        self.config_data[self.airline.lower()] = {
-            "user": self.user_entry.get(),
-            "pass": self.pass_entry.get(),
-            "link": self.link_entry.get()
-        }
-        save_config(self.config_data)
-        messagebox.showinfo("Xong rồi", f"Đã lưu cài đặt cho {self.airline}")
-        self.destroy()
-
-class LoginWindow(ctk.CTk):
-    def __init__(self):
-        super().__init__()
-        self.title("Đăng nhập")
-        self.geometry("600x300")
-        self.resizable(False, False)
-
-        ctk.CTkLabel(self, text="User", font=("Segoe UI", 14)).pack(pady=(40, 10))
-        self.user_entry = ctk.CTkEntry(self, width=300)
-        self.user_entry.pack()
-
-        ctk.CTkLabel(self, text="Password", font=("Segoe UI", 14)).pack(pady=(20, 10))
-        self.pass_entry = ctk.CTkEntry(self, show="*", width=300)
-        self.pass_entry.pack()
-
-        ctk.CTkButton(self, text="Đăng nhập", command=self.check_login, width=200, height=40, font=("Segoe UI", 14, "bold")).pack(pady=30)
-
-        self.user_entry.insert(0, DEFAULT_USER)
-        self.pass_entry.insert(0, DEFAULT_PASS)
-
-    def check_login(self):
-        if self.user_entry.get() == DEFAULT_USER and self.pass_entry.get() == DEFAULT_PASS:
-            self.destroy()
-            MainApp()
+# ====================================================
+# ✈ VNA ROUTES
+# ====================================================
+@app.get("/vna/check-ve-vna")
+async def vna_api(
+    dep0: str = Query(..., description="Sân bay đi, ví dụ: SGN"),
+    arr0: str = Query(..., description="Sân bay đến, ví dụ: HAN"),
+    depdate0: str = Query(..., description="Ngày đi, định dạng yyyy-MM-dd hoặc yyyyMMdd"),
+    depdate1: Optional[str] = Query("", description="Ngày về (nếu có), định dạng yyyy-MM-dd"),
+    name: Optional[str] = Query("khách lẻ", description="Tên người đặt"),
+    sochieu: int = Query(1, description="1: Một chiều, 2: Khứ hồi")
+):
+    try:
+        result = await api_vna(
+            dep0=dep0,
+            arr0=arr0,
+            depdate0=depdate0,
+            depdate1=depdate1,
+            name=name,
+            sochieu=sochieu
+        )
+        if result:
+            asyncio.create_task(safe_send_vna(result))
+            return { "message": result}
         else:
-            messagebox.showerror("Sai rồi", "Đăng nhập xàm lol")
+            return { "message": "Không tìm được vé phù hợp"}
 
-class MainApp(ctk.CTk):
-    def __init__(self):
-        super().__init__()
-        self.title("🛫 App Check Vé Máy Bay")
-        self.geometry("1000x600")
-        self.minsize(800, 500)
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+@app.get("/vna/check-ve-v2")
+async def vna_api_v2(
+    dep0: str = Query(..., description="Sân bay đi, ví dụ: SGN"),
+    arr0: str = Query(..., description="Sân bay đến, ví dụ: HAN"),
+    depdate0: str = Query(..., description="Ngày đi, định dạng yyyy-mm-dd"),
+    depdate1: Optional[str] = Query(None, description="Ngày về (nếu có), định dạng yyyy-mm-dd"),
+    activedVia: str = Query("0,1,2", description="Bay thẳng = '0', dừng 1 chặng ='1', dừng 2 chặng ='2', tất cả ='0,1,2'" ),
+    activedIDT: str = Query("ADT,VFR", description="việt kiều = VFR, người lớn phổ thông = ADT " ),
+    adt: str = Query("1", description="Số người lớn"),
+    chd: str = Query("0", description="Số trẻ em"),
+    inf: str = Query("0", description="Số trẻ sơ sinh"),
+    page: str = Query("1", description="Số thứ tự trang"),
+    sochieu: str = Query("RT", description="OW: Một chiều, RT: Khứ hồi"),
+    filterTimeSlideMin0: str = Query("5", description="Thời gian xuất phát sớm nhất chiều đi (00h05p)"),
+    filterTimeSlideMax0: str = Query("2355", description="Thời gian xuất phát muộn nhất chiều đi (23h55p)"),
+    filterTimeSlideMin1: str = Query("5", description="Thời gian xuất phát sớm nhất chiều về (00h05p)"),
+    filterTimeSlideMax1: str = Query("2355", description="Thời gian xuất phát muộn nhất chiều về (23h55p)"),
+    session_key: str = Query(None, description="session_key")
+):
+    try:
+        depdate0_dt = datetime.strptime(depdate0, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Ngày đi sai định dạng yyyy-mm-dd")
+        # Nếu RT mà không có ngày về -> gán = ngày đi
+    if sochieu.upper() == "RT":
+        if not depdate1:
+            raise HTTPException(status_code=400, detail="Vui lòng điền ngày về")
+        try:
+            depdate1_dt = datetime.strptime(depdate1, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Ngày về sai định dạng yyyy-mm-dd")
 
-        top_frame = ctk.CTkFrame(self)
-        top_frame.pack(fill="x", padx=20, pady=10)
+        if depdate1_dt < depdate0_dt:
+            raise HTTPException(
+                status_code=400,
+                detail="Ngày về phải sau hoặc bằng ngày đi "
+            )
+    try:
+        if sochieu.upper()!="RT":
+            result = await api_vna_v2(
+                dep0=dep0,
+                arr0=arr0,
+                depdate0=depdate0,
+                activedVia=activedVia,
+                activedIDT=activedIDT,
+                filterTimeSlideMin0=filterTimeSlideMin0,
+                filterTimeSlideMax0=filterTimeSlideMax0,
+                filterTimeSlideMin1=filterTimeSlideMin1,
+                filterTimeSlideMax1=filterTimeSlideMax1,
+                page=page,
+                adt=adt,
+                chd=chd,
+                inf=inf,
+                sochieu=sochieu,
+                session_key=session_key
+            )
+        if sochieu.upper()== "RT":
+            result = await api_vna_rt_v2(
+                dep0=dep0,
+                arr0=arr0,
+                depdate0=depdate0,
+                depdate1=depdate1,
+                activedVia=activedVia,
+                activedIDT=activedIDT,
+                filterTimeSlideMin0=filterTimeSlideMin0,
+                filterTimeSlideMax0=filterTimeSlideMax0,
+                filterTimeSlideMin1=filterTimeSlideMin1,
+                filterTimeSlideMax1=filterTimeSlideMax1,
+                page=page,
+                adt=adt,
+                chd=chd,
+                inf=inf,
+                sochieu=sochieu,
+                session_key=session_key
+            )
+        if result:
+            #asyncio.create_task(safe_send_vna("status_code : 200"))
+            return result
+        else:
+            return { "status_code": 400, "body" : "Lỗi khi lấy dữ liệu"}
 
-        ctk.CTkButton(top_frame, text="Cài đặt VietJet", command=self.setup_vietjet).pack(side="left", padx=10)
-        ctk.CTkButton(top_frame, text="Cài đặt VNA", command=self.setup_vna).pack(side="left", padx=10)
-        ctk.CTkButton(top_frame, text="Bắt đầu", command=self.start_check).pack(side="right", padx=10)
-        ctk.CTkButton(top_frame, text="Dừng", command=self.stop_check).pack(side="right")
-
-        # === Thanh chọn thông tin tìm kiếm ===
-        form_frame = ctk.CTkFrame(self)
-        form_frame.pack(fill="x", padx=20, pady=(5, 0))
-
-        self.from_combo = ctk.CTkComboBox(form_frame, values=["SGN", "HAN", "DAD"], width=100)
-        self.from_combo.set("SGN")
-        self.from_combo.pack(side="left", padx=5)
-
-        self.to_combo = ctk.CTkComboBox(form_frame, values=["HAN", "SGN", "DAD"], width=100)
-        self.to_combo.set("HAN")
-        self.to_combo.pack(side="left", padx=5)
-
-        self.depart_date = ctk.CTkEntry(form_frame, placeholder_text="Ngày đi (dd-mm-yyyy)", width=130)
-        self.depart_date.pack(side="left", padx=5)
-
-        self.return_date = ctk.CTkEntry(form_frame, placeholder_text="Ngày về (dd-mm-yyyy)", width=130)
-        self.return_date.pack(side="left", padx=5)
-
-        self.passenger_count = ctk.CTkComboBox(form_frame, values=[str(i) for i in range(1, 10)], width=80)
-        self.passenger_count.set("1")
-        self.passenger_count.pack(side="left", padx=5)
-
-        ctk.CTkButton(form_frame, text="Check", command=self.send_form).pack(side="left", padx=10)
-
-        # === Khung log chính ===
-        main_frame = ctk.CTkFrame(self)
-        main_frame.pack(expand=True, fill="both", padx=20, pady=10)
-
-        self.left_log = ctk.CTkTextbox(main_frame)
-        self.left_log.pack(side="left", expand=True, fill="both", padx=10, pady=10)
-        self.left_log.insert("end", "[VietJet Log]")
-
-        self.right_log = ctk.CTkTextbox(main_frame)
-        self.right_log.pack(side="right", expand=True, fill="both", padx=10, pady=10)
-        self.right_log.insert("end", "[VNA Log]")
-
-        # === Progress bar ===
-        self.vietjet_progress = ctk.CTkProgressBar(self)
-        self.vna_progress = ctk.CTkProgressBar(self)
-        self.vietjet_progress.pack(fill="x", padx=25, pady=(0, 5))
-        self.vna_progress.pack(fill="x", padx=25, pady=(0, 20))
-        self.vietjet_progress.set(0)
-        self.vna_progress.set(0)
-
-        self.mainloop()
-
-    def setup_vietjet(self):
-        SetupWindow(self, "VietJet")
-
-    def setup_vna(self):
-        SetupWindow(self, "VNA")
-
-    def start_check(self):
-        self.left_log.insert("end", "\n👉 Bắt đầu kiểm tra VietJet...")
-        self.right_log.insert("end", "\n👉 Bắt đầu kiểm tra VNA...")
-        self.vietjet_progress.set(0.3)
-        self.vna_progress.set(0.5)
-
-    def stop_check(self):
-        self.left_log.insert("end", "\n⛔ Đã dừng VietJet")
-        self.right_log.insert("end", "\n⛔ Đã dừng VNA")
-        self.vietjet_progress.set(0)
-        self.vna_progress.set(0)
-
-    def send_form(self):
-        from_loc = self.from_combo.get()
-        to_loc = self.to_combo.get()
-        depart = self.depart_date.get()
-        ret = self.return_date.get()
-        pax = self.passenger_count.get()
-
-        self.left_log.insert("end", f"\n📤 Đã gửi yêu cầu: {from_loc} -> {to_loc}, đi: {depart}, về: {ret}, {pax} người")
-        self.left_log.see("end")
-
-if __name__ == "__main__":
-    LoginWindow().mainloop()
+    except Exception as e:
+        return {"status_code": 401, "body": str(e)}
